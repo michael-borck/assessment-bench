@@ -1,6 +1,6 @@
 [Paths]
-SystemPromptPath = 
-UserPromptPath = 
+SystemPromptPath = prompts/system_prompt.txt
+UserPromptPath = prompts/user_prompt.txt
 SupportFolder = 
 SubmissionsFolder = 
 OutputFolder = 
