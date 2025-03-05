@@ -76,25 +76,29 @@ def create_executable():
     if icon_path and os.path.exists(icon_path):
         cmd.append(f"--icon={icon_path}")
     
+    # Check for config.ini and create from template if missing
+    if not os.path.exists("config.ini") and os.path.exists("config.ini.template"):
+        print("config.ini not found, creating from template...")
+        shutil.copy("config.ini.template", "config.ini")
+    
     # Add data files - handle path separators differently on Windows vs Unix
-    if sys.platform.startswith('win'):
-        # Windows uses semicolons as separators
-        cmd.extend([
-            "--add-data=aiassessor/core;aiassessor/core",
-            "--add-data=aiassessor/ui;aiassessor/ui",
-            "--add-data=aiassessor/utils;aiassessor/utils",
-            "--add-data=aiassessor/config;aiassessor/config",
-            "--add-data=config.ini;.",
-        ])
-    else:
-        # Unix uses colons as separators
-        cmd.extend([
-            "--add-data=aiassessor/core:aiassessor/core",
-            "--add-data=aiassessor/ui:aiassessor/ui",
-            "--add-data=aiassessor/utils:aiassessor/utils",
-            "--add-data=aiassessor/config:aiassessor/config",
-            "--add-data=config.ini:.",
-        ])
+    separator = ";" if sys.platform.startswith('win') else ":"
+    
+    # Build data additions with appropriate separator
+    data_additions = [
+        f"--add-data=aiassessor/core{separator}aiassessor/core",
+        f"--add-data=aiassessor/ui{separator}aiassessor/ui",
+        f"--add-data=aiassessor/utils{separator}aiassessor/utils",
+        f"--add-data=aiassessor/config{separator}aiassessor/config",
+    ]
+    
+    # Add config files if they exist
+    if os.path.exists("config.ini"):
+        data_additions.append(f"--add-data=config.ini{separator}.")
+    if os.path.exists("config.ini.template"):
+        data_additions.append(f"--add-data=config.ini.template{separator}.")
+    
+    cmd.extend(data_additions)
     
     # Add the main script
     cmd.append("standalone.py")

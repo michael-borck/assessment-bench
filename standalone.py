@@ -224,6 +224,18 @@ def main():
     # Set config file path
     config_file = os.path.join(base_dir, "config.ini")
     
+    # Check if config.ini exists, if not try to create from template
+    if not os.path.exists(config_file):
+        template_file = os.path.join(base_dir, "config.ini.template")
+        if os.path.exists(template_file):
+            print(f"Config file not found at {config_file}, creating from template...")
+            try:
+                with open(template_file, 'r') as src, open(config_file, 'w') as dst:
+                    dst.write(src.read())
+                print("Config file created successfully")
+            except Exception as e:
+                print(f"Error creating config file: {e}")
+    
     # Initialize configuration
     config_manager = ConfigManager(config_file)
     

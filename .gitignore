@@ -68,3 +68,5 @@ logs/
 feedback/
 icon.ico
 config.ini
+# Allow template files
+!config.ini.template
