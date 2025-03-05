@@ -20,6 +20,15 @@ def create_executable():
     except ImportError:
         print("PyInstaller not found. Installing...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
+        
+    # Verify the PyInstaller executable is in PATH
+    pyinstaller_cmd = "pyinstaller"
+    
+    # On Windows, we need to be more careful about finding the executable
+    if sys.platform.startswith('win'):
+        # Try with python -m PyInstaller instead of direct command
+        pyinstaller_cmd = [sys.executable, "-m", "PyInstaller"]
+        print(f"Using Python module form for PyInstaller on Windows: {pyinstaller_cmd}")
     
     # Create dist directory if it doesn't exist
     if not os.path.exists("dist"):
@@ -45,34 +54,72 @@ def create_executable():
             icon_path = None
     
     # Prepare PyInstaller command
-    cmd = [
-        "pyinstaller",
-        "--clean",
-        "--name=AI_Assessor",
-        "--onefile",
-        "--windowed",
-    ]
+    if isinstance(pyinstaller_cmd, list):
+        # For Windows using Python module form
+        cmd = pyinstaller_cmd + [
+            "--clean",
+            "--name=AI_Assessor",
+            "--onefile",
+            "--windowed",
+        ]
+    else:
+        # For direct command execution
+        cmd = [
+            pyinstaller_cmd,
+            "--clean",
+            "--name=AI_Assessor",
+            "--onefile",
+            "--windowed",
+        ]
     
     # Add icon if available
     if icon_path and os.path.exists(icon_path):
         cmd.append(f"--icon={icon_path}")
     
-    # Add data files
-    cmd.extend([
-        "--add-data=aiassessor/core;aiassessor/core",
-        "--add-data=aiassessor/ui;aiassessor/ui",
-        "--add-data=aiassessor/utils;aiassessor/utils",
-        "--add-data=aiassessor/config;aiassessor/config",
-        "--add-data=config.ini;.",
-    ])
+    # Add data files - handle path separators differently on Windows vs Unix
+    if sys.platform.startswith('win'):
+        # Windows uses semicolons as separators
+        cmd.extend([
+            "--add-data=aiassessor/core;aiassessor/core",
+            "--add-data=aiassessor/ui;aiassessor/ui",
+            "--add-data=aiassessor/utils;aiassessor/utils",
+            "--add-data=aiassessor/config;aiassessor/config",
+            "--add-data=config.ini;.",
+        ])
+    else:
+        # Unix uses colons as separators
+        cmd.extend([
+            "--add-data=aiassessor/core:aiassessor/core",
+            "--add-data=aiassessor/ui:aiassessor/ui",
+            "--add-data=aiassessor/utils:aiassessor/utils",
+            "--add-data=aiassessor/config:aiassessor/config",
+            "--add-data=config.ini:.",
+        ])
     
     # Add the main script
     cmd.append("standalone.py")
     
     # Run PyInstaller
     print("Running PyInstaller with command:")
-    print(" ".join(cmd))
-    subprocess.check_call(cmd)
+    # Format the command for better readability
+    if isinstance(cmd[0], list):
+        cmd_str = f"{' '.join(cmd[0])} {' '.join(cmd[1:])}"
+    else:
+        cmd_str = " ".join(cmd)
+    print(cmd_str)
+    
+    try:
+        subprocess.check_call(cmd)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        print("\nTroubleshooting tips:")
+        print("1. Try installing PyInstaller manually: pip install pyinstaller")
+        print("2. Make sure PyInstaller is in your PATH")
+        print("3. Try running: python -m PyInstaller standalone.py")
+        return
+    except subprocess.CalledProcessError as e:
+        print(f"Error during PyInstaller execution: {e}")
+        return
     
     print("Creating sample prompts directory...")
     # Create sample prompts directory in dist
