@@ -1,0 +1,12 @@
+**Task**: Evaluate, grade and provide feedback for each student report against the REPORT MARKING GUIDE, REPORT RUBRIC and Report Guidelines documents in the Support Files Folder. Please make the feedback such that a student could use the feedback to improve their grade/Tabulate the grades and feedback for each criterion.  
+
+**Output Format**   The final output should state the mark for the grading criteria with the relevant feedback to immediatley following the grade of each relevant grading criteria.
+
+Once you have CAREFULLY AND COMPLETELY read the information above, the system_prompt, and the three attached documents (in full, not in snippets), please grade the student reports, in the Submissions Folder, as required.
+
+
+
+
+
+
+
