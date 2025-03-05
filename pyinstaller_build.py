@@ -97,6 +97,53 @@ def create_executable():
         data_additions.append(f"--add-data=config.ini{separator}.")
     if os.path.exists("config.ini.template"):
         data_additions.append(f"--add-data=config.ini.template{separator}.")
+        
+    # Add default prompt files
+    default_prompts_dir = "default_prompts"
+    if not os.path.exists(default_prompts_dir):
+        os.makedirs(default_prompts_dir)
+        
+    # Create default system prompt if it doesn't exist
+    default_system_prompt = os.path.join(default_prompts_dir, "system_prompt.txt")
+    if not os.path.exists(default_system_prompt):
+        with open(default_system_prompt, "w") as f:
+            f.write("""You are an expert in evaluating student assignments. Your task is to provide detailed feedback and grading for a student's submission, based on the rubric provided.
+
+Please evaluate the work objectively, considering the quality of reasoning, accuracy of information, clarity of expression, and adherence to the requirements.
+
+Your feedback should be:
+1. Specific and detailed
+2. Constructive and actionable
+3. Balanced, noting both strengths and areas for improvement
+
+Format your response as follows:
+- Overall assessment (2-3 sentences summarizing the work)
+- Strengths (bullet points of what was done well)
+- Areas for improvement (bullet points with specific suggestions)
+- Grade (a letter grade or numerical score, with brief justification)
+""")
+    
+    # Create default user prompt if it doesn't exist
+    default_user_prompt = os.path.join(default_prompts_dir, "user_prompt.txt")
+    if not os.path.exists(default_user_prompt):
+        with open(default_user_prompt, "w") as f:
+            f.write("""Please evaluate the following student submission.
+
+The assignment asked students to write a short essay analyzing the main themes of a literary work they read this semester. They were instructed to identify at least three themes, provide textual evidence for each, and explain the significance of these themes to the overall work.
+
+Grading criteria:
+- Identification of at least three relevant themes (30%)
+- Quality and relevance of textual evidence (30%)
+- Depth of analysis and explanation of significance (30%)
+- Organization and clarity of writing (10%)
+
+Please provide a detailed assessment, including strengths, areas for improvement, and a final grade out of 100.
+
+Below is the student's submission:
+""")
+    
+    # Add default prompts to distribution
+    data_additions.append(f"--add-data={default_prompts_dir}{separator}{default_prompts_dir}")
     
     cmd.extend(data_additions)
     

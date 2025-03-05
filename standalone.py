@@ -242,6 +242,27 @@ def main():
     # Get API key from environment or config
     api_key = os.getenv("OPENAI_API_KEY") or config_manager.get_value("API", "Key", "")
     
+    # Check if prompt files exist and create from defaults if needed
+    system_prompt_path = config_manager.get_value("Paths", "SystemPromptPath", "")
+    user_prompt_path = config_manager.get_value("Paths", "UserPromptPath", "")
+    
+    # Use default prompts if paths not set or files don't exist
+    if not system_prompt_path or not os.path.exists(system_prompt_path):
+        default_system_prompt = os.path.join(base_dir, "default_prompts", "system_prompt.txt")
+        if os.path.exists(default_system_prompt):
+            print(f"System prompt not found, using default: {default_system_prompt}")
+            # Set the path in the config
+            config_manager.set_value("Paths", "SystemPromptPath", default_system_prompt)
+            config_manager.save()
+    
+    if not user_prompt_path or not os.path.exists(user_prompt_path):
+        default_user_prompt = os.path.join(base_dir, "default_prompts", "user_prompt.txt")
+        if os.path.exists(default_user_prompt):
+            print(f"User prompt not found, using default: {default_user_prompt}")
+            # Set the path in the config
+            config_manager.set_value("Paths", "UserPromptPath", default_user_prompt)
+            config_manager.save()
+    
     # Initialize API client
     api_client = OpenAIClient(api_key)
     

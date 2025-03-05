@@ -70,3 +70,6 @@ icon.ico
 config.ini
 # Allow template files
 !config.ini.template
+# Default prompts directory should be included
+!default_prompts/
+!default_prompts/*
