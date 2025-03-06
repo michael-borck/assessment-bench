@@ -33,7 +33,7 @@ class Assessor:
             config_manager: Configuration manager
         """
         self.api_client = api_client
-        self.config = config_manager
+        self.config_manager = config_manager
         
         # Initialize document processor
         self.doc_processor = DocumentProcessor()
@@ -118,11 +118,11 @@ class Assessor:
             
             # Use default model if none specified
             if not model:
-                model = self.config.get_value("API", "DefaultModel", "gpt-4-turbo")
+                model = self.config_manager.get_value("API", "DefaultModel", "gpt-4-turbo")
             
             # Validate temperature
             if not isinstance(temperature, float) or temperature < 0 or temperature > 1:
-                temperature = float(self.config.get_value("API", "Temperature", "0.7"))
+                temperature = float(self.config_manager.get_value("API", "Temperature", "0.7"))
             
             # Call the API
             feedback = self.api_client.generate_assessment(
@@ -176,7 +176,7 @@ class Assessor:
             
             # Use default model if none specified
             if not model:
-                model = self.config.get_value("API", "DefaultModel", "gpt-4-turbo")
+                model = self.config_manager.get_value("API", "DefaultModel", "gpt-4-turbo")
             
             # Process each submission
             for filename in docx_files:

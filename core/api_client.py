@@ -2,7 +2,7 @@
 This is the same as aiassessor/core/api_client.py but for PyInstaller
 to help with imports in the packaged version.
 """
-import openai
+from openai import OpenAI
 import os
 import sys
 import importlib.util
@@ -14,8 +14,7 @@ class OpenAIClient:
         
     def initialize(self):
         """Initialize the OpenAI API client."""
-        openai.api_key = self.api_key
-        self.client = openai
+        self.client = OpenAI(api_key=self.api_key)
         
     def generate_assessment(self, system_content, user_content, model, temperature=0.7, max_tokens=3500):
         """
@@ -35,8 +34,12 @@ class OpenAIClient:
             Exception: If API call fails
         """
         try:
-            self.initialize()
-            response = self.client.ChatCompletion.create(
+            # Initialize client if not already done
+            if not self.client:
+                self.initialize()
+                
+            # Use the new API format
+            response = self.client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_content},
@@ -46,7 +49,7 @@ class OpenAIClient:
                 max_tokens=max_tokens,
             )
             
-            # Extract the response
+            # Extract the response (new API format)
             return response.choices[0].message.content.strip()
         except Exception as e:
             raise Exception(f"API call failed: {str(e)}")
