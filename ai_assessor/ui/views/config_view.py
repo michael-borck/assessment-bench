@@ -9,7 +9,7 @@ class ConfigView(ttk.Frame):
     Configuration tab of the application.
     """
     
-    def __init__(self, parent, config_manager, string_vars):
+    def __init__(self, parent, config_manager, string_vars, available_models=None):
         """
         Initialize the configuration view.
         
@@ -17,11 +17,13 @@ class ConfigView(ttk.Frame):
             parent: The parent widget
             config_manager: The configuration manager
             string_vars: Dictionary of StringVar objects for configuration
+            available_models: List of available OpenAI models (optional)
         """
         super().__init__(parent)
         self.config_manager = config_manager
         self.string_vars = string_vars
         self.document_processor = DocumentProcessor()
+        self.available_models = available_models or []
         
         # Setup UI
         self.setup_ui()
@@ -79,11 +81,17 @@ class ConfigView(ttk.Frame):
         model_frame = ttk.Frame(self)
         model_frame.grid(row=row, column=1, sticky="ew", padx=5, pady=5)
         
-        # Fetch available models from config
-        model_options = list(self.config_manager.config["Models"].keys()) if self.config_manager.config.has_section("Models") else ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o"]
+        # Use available models if fetched, otherwise use config
+        if self.available_models:
+            model_options = self.available_models
+        else:
+            model_options = list(self.config_manager.config["Models"].keys()) if self.config_manager.config.has_section("Models") else ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o"]
         
         # Create combobox for model selection
         self.model_dropdown = ttk.Combobox(model_frame, textvariable=self.string_vars["model"], values=model_options)
+        
+        # Add button to refresh models
+        ttk.Button(model_frame, text="Refresh Models", command=self.refresh_models).pack(side="right", padx=5)
         self.model_dropdown.pack(side="left", fill="x", expand=True)
         
         # Add button to add new model
@@ -228,6 +236,67 @@ class ConfigView(ttk.Frame):
         else:
             tk.messagebox.showwarning("Warning", "Please specify a user prompt path.")
             
+    def refresh_models(self):
+        """Refresh available models from OpenAI API."""
+        api_key = self.string_vars["api_key"].get()
+        if not api_key:
+            tk.messagebox.showwarning("API Key Required", "Please enter your OpenAI API key first.")
+            return
+        
+        # Show loading dialog
+        loading = tk.Toplevel(self)
+        loading.title("Fetching Models")
+        loading.geometry("300x100")
+        loading.transient(self)
+        loading.grab_set()
+        
+        ttk.Label(loading, text="Fetching available models...", padding=20).pack()
+        progress = ttk.Progressbar(loading, mode="indeterminate")
+        progress.pack(fill="x", padx=20)
+        progress.start()
+        
+        def fetch_models():
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
+                models = client.models.list()
+                
+                # Filter for chat models
+                chat_models = [model.id for model in models.data 
+                              if model.id.startswith(('gpt-3.5', 'gpt-4'))]
+                
+                # Sort models: put gpt-4 first, then gpt-3.5
+                gpt4_models = sorted([m for m in chat_models if m.startswith('gpt-4')])
+                gpt35_models = sorted([m for m in chat_models if m.startswith('gpt-3.5')])
+                
+                self.available_models = gpt4_models + gpt35_models
+                
+                # Update dropdown on main thread
+                self.root.after(0, lambda: self._update_model_dropdown(loading))
+            except Exception as e:
+                # Handle error on main thread
+                self.root.after(0, lambda: self._handle_refresh_error(e, loading))
+        
+        # Run in thread to avoid blocking UI
+        import threading
+        threading.Thread(target=fetch_models, daemon=True).start()
+    
+    def _update_model_dropdown(self, loading_dialog):
+        """Update model dropdown with fetched models."""
+        if self.available_models:
+            self.model_dropdown['values'] = self.available_models
+            loading_dialog.destroy()
+            tk.messagebox.showinfo("Models Updated", f"Found {len(self.available_models)} available models.")
+        else:
+            loading_dialog.destroy()
+            tk.messagebox.showwarning("No Models Found", "No compatible models were found. Using default models.")
+            self.model_dropdown['values'] = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
+    
+    def _handle_refresh_error(self, error, loading_dialog):
+        """Handle errors when refreshing models."""
+        loading_dialog.destroy()
+        tk.messagebox.showerror("Error", f"Failed to fetch models: {str(error)}")
+    
     def manage_models(self):
         """Open dialog to manage models."""
         # Create a new dialog window
