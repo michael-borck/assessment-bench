@@ -58,8 +58,8 @@ class GradingView(ttk.Frame):
         button_frame = ttk.Frame(self)
         button_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=5)
         
-        ttk.Button(button_frame, text="Mark Selected", command=self.mark_selected).pack(side="left", padx=5, pady=5)
-        ttk.Button(button_frame, text="Mark All", command=self.mark_all).pack(side="left", padx=5, pady=5)
+        ttk.Button(button_frame, text="Grade Selected", command=self.grade_selected).pack(side="left", padx=5, pady=5)
+        ttk.Button(button_frame, text="Grade All", command=self.grade_all).pack(side="left", padx=5, pady=5)
         ttk.Button(button_frame, text="Refresh List", command=self.update_file_list).pack(side="left", padx=5, pady=5)
         
         # Content display
@@ -178,9 +178,9 @@ class GradingView(ttk.Frame):
                 except Exception as e:
                     self.feedback_display.insert(tk.END, f"Error reading feedback: {str(e)}")
             else:
-                self.feedback_display.insert(tk.END, "Feedback not available. Use 'Mark Selected' to grade this submission.")
+                self.feedback_display.insert(tk.END, "Feedback not available. Use 'Grade Selected' to assess this submission.")
     
-    def mark_selected(self):
+    def grade_selected(self):
         """Grade the selected submissions."""
         # Get selected indices
         selected_indices = self.file_list.curselection()
@@ -273,7 +273,7 @@ class GradingView(ttk.Frame):
         if current_selection:
             self.display_feedback(self.file_list.get(current_selection[0]))
     
-    def mark_all(self):
+    def grade_all(self):
         """Grade all submissions in the folder."""
         # Get configurations
         api_key = self.string_vars["api_key"].get()
