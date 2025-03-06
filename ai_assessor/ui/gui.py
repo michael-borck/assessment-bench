@@ -171,7 +171,12 @@ class AIAssessorGUI:
     def fetch_available_models(self, api_key):
         """Fetch available models from OpenAI API."""
         try:
-            client = OpenAI(api_key=api_key)
+            # Try with a timeout to avoid hanging
+            import httpx
+            client = OpenAI(
+                api_key=api_key,
+                timeout=httpx.Timeout(10.0)  # 10 second timeout
+            )
             models = client.models.list()
             
             # Filter for chat models
@@ -183,8 +188,12 @@ class AIAssessorGUI:
             gpt35_models = sorted([m for m in chat_models if m.startswith('gpt-3.5')])
             
             self.available_models = gpt4_models + gpt35_models
-        except Exception:
+            
+            # Log success for debugging
+            print(f"Successfully fetched {len(self.available_models)} models")
+        except Exception as e:
             # If fetching fails, use default models
+            print(f"Error fetching models: {str(e)}")
             self.available_models = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
     
     def setup_ui(self):

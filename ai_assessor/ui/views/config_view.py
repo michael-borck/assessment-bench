@@ -250,15 +250,46 @@ class ConfigView(ttk.Frame):
         loading.transient(self)
         loading.grab_set()
         
-        ttk.Label(loading, text="Fetching available models...", padding=20).pack()
+        status_var = tk.StringVar(value="Fetching available models...")
+        ttk.Label(loading, textvariable=status_var, padding=20).pack()
+        
         progress = ttk.Progressbar(loading, mode="indeterminate")
         progress.pack(fill="x", padx=20)
         progress.start()
         
+        # Add cancel button
+        ttk.Button(loading, text="Cancel", command=loading.destroy).pack(pady=10)
+        
+        # Set a timeout flag
+        fetch_complete = False
+        
+        # Timeout function
+        def check_timeout():
+            if not fetch_complete and loading.winfo_exists():
+                loading.destroy()
+                tk.messagebox.showwarning("Timeout", 
+                                       "Request to fetch models timed out.\n"
+                                       "Using default models instead.")
+                self.model_dropdown['values'] = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
+        
+        # Set 10 second timeout
+        timeout_id = self.winfo_toplevel().after(10000, check_timeout)
+        
         def fetch_models():
+            nonlocal fetch_complete
             try:
                 from openai import OpenAI
-                client = OpenAI(api_key=api_key)
+                import httpx
+                
+                # Use timeout for the API request
+                client = OpenAI(
+                    api_key=api_key,
+                    timeout=httpx.Timeout(8.0)  # 8 second timeout for requests
+                )
+                
+                # Update status
+                self.winfo_toplevel().after(0, lambda: status_var.set("Connecting to OpenAI API..."))
+                
                 models = client.models.list()
                 
                 # Filter for chat models
@@ -271,11 +302,23 @@ class ConfigView(ttk.Frame):
                 
                 self.available_models = gpt4_models + gpt35_models
                 
+                # Mark as complete to avoid timeout
+                fetch_complete = True
+                
+                # Cancel timeout
+                self.winfo_toplevel().after_cancel(timeout_id)
+                
                 # Update dropdown on main thread
-                self.root.after(0, lambda: self._update_model_dropdown(loading))
+                self.winfo_toplevel().after(0, lambda: self._update_model_dropdown(loading))
             except Exception as e:
+                # Mark as complete to avoid timeout
+                fetch_complete = True
+                
+                # Cancel timeout
+                self.winfo_toplevel().after_cancel(timeout_id)
+                
                 # Handle error on main thread
-                self.root.after(0, lambda: self._handle_refresh_error(e, loading))
+                self.winfo_toplevel().after(0, lambda: self._handle_refresh_error(e, loading))
         
         # Run in thread to avoid blocking UI
         import threading
@@ -283,19 +326,42 @@ class ConfigView(ttk.Frame):
     
     def _update_model_dropdown(self, loading_dialog):
         """Update model dropdown with fetched models."""
-        if self.available_models:
-            self.model_dropdown['values'] = self.available_models
-            loading_dialog.destroy()
-            tk.messagebox.showinfo("Models Updated", f"Found {len(self.available_models)} available models.")
-        else:
-            loading_dialog.destroy()
-            tk.messagebox.showwarning("No Models Found", "No compatible models were found. Using default models.")
+        try:
+            # Check if dialog still exists before trying to destroy it
+            if loading_dialog.winfo_exists():
+                if self.available_models:
+                    self.model_dropdown['values'] = self.available_models
+                    loading_dialog.destroy()
+                    tk.messagebox.showinfo("Models Updated", f"Found {len(self.available_models)} available models.")
+                else:
+                    loading_dialog.destroy()
+                    tk.messagebox.showwarning("No Models Found", "No compatible models were found. Using default models.")
+                    self.model_dropdown['values'] = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
+            else:
+                # Dialog was already closed (e.g., by user or timeout)
+                if self.available_models:
+                    self.model_dropdown['values'] = self.available_models
+                else:
+                    self.model_dropdown['values'] = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
+        except Exception:
+            # Handle any unexpected errors
             self.model_dropdown['values'] = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
     
     def _handle_refresh_error(self, error, loading_dialog):
         """Handle errors when refreshing models."""
-        loading_dialog.destroy()
-        tk.messagebox.showerror("Error", f"Failed to fetch models: {str(error)}")
+        try:
+            # Check if dialog still exists before trying to destroy it
+            if loading_dialog.winfo_exists():
+                loading_dialog.destroy()
+            
+            # Show error message
+            tk.messagebox.showerror("Error", f"Failed to fetch models: {str(error)}")
+            
+            # Fall back to default models
+            self.model_dropdown['values'] = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
+        except Exception:
+            # Dialog was already destroyed or other error
+            pass
     
     def manage_models(self):
         """Open dialog to manage models."""
