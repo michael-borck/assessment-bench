@@ -188,6 +188,61 @@ class GradingView(ttk.Frame):
         if not selected_indices:
             messagebox.showwarning("Warning", "Please select at least one submission to grade.")
             return
+            
+        # Number of submissions to grade
+        total_submissions = len(selected_indices)
+            
+        # Create a progress dialog
+        progress_window = tk.Toplevel(self)
+        progress_window.title("Grading Progress")
+        progress_window.geometry("400x200")
+        progress_window.transient(self)
+        progress_window.grab_set()
+        progress_window.resizable(False, False)
+        
+        # Center the window
+        progress_window.update_idletasks()
+        window_width = progress_window.winfo_width()
+        window_height = progress_window.winfo_height()
+        x_offset = (progress_window.winfo_screenwidth() - window_width) // 2
+        y_offset = (progress_window.winfo_screenheight() - window_height) // 2
+        progress_window.geometry(f"+{x_offset}+{y_offset}")
+        
+        # Create a frame for the progress information
+        frame = ttk.Frame(progress_window, padding=20)
+        frame.pack(fill="both", expand=True)
+        
+        # Add a label showing what's being graded
+        current_file_var = tk.StringVar(value="Initializing...")
+        ttk.Label(frame, text="Current File:").grid(row=0, column=0, sticky="w", pady=(0, 5))
+        ttk.Label(frame, textvariable=current_file_var, font=("Helvetica", 10, "bold")).grid(row=0, column=1, sticky="w", pady=(0, 5))
+        
+        # Add progress bar
+        ttk.Label(frame, text="Overall Progress:").grid(row=1, column=0, sticky="w", pady=(10, 5))
+        progress_var = tk.IntVar(value=0)
+        progress_bar = ttk.Progressbar(frame, variable=progress_var, maximum=total_submissions, length=300)
+        progress_bar.grid(row=1, column=1, sticky="ew", pady=(10, 5))
+        
+        # Add submission count info
+        count_var = tk.StringVar(value=f"0/{total_submissions} completed")
+        ttk.Label(frame, textvariable=count_var).grid(row=2, column=1, sticky="e", pady=(5, 15))
+        
+        # Add status message
+        status_var = tk.StringVar(value="Starting...")
+        ttk.Label(frame, textvariable=status_var, wraplength=350).grid(row=3, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        
+        # Add activity indicator
+        activity_frame = ttk.Frame(frame)
+        activity_frame.grid(row=4, column=0, columnspan=2, pady=(15, 0))
+        activity_bar = ttk.Progressbar(activity_frame, mode="indeterminate", length=300)
+        activity_bar.pack()
+        activity_bar.start()
+        
+        # Configure grid for frame
+        frame.columnconfigure(1, weight=1)
+        
+        # Force update to show the window
+        progress_window.update()
         
         # Get configurations
         api_key = self.string_vars["api_key"].get()
@@ -198,72 +253,140 @@ class GradingView(ttk.Frame):
         output_folder = self.string_vars["output_folder"].get()
         model = self.string_vars["model"].get()
         
-        # Validate temperature
-        try:
-            temperature = float(self.string_vars["temperature"].get())
-            if temperature < 0 or temperature > 1:
-                raise ValueError("Temperature must be between 0 and 1")
-        except ValueError as e:
-            messagebox.showerror("Error", f"Invalid temperature value: {str(e)}")
-            return
-        
-        # Validate paths
-        if not api_key:
-            messagebox.showerror("Error", "API key is required.")
-            return
-        
-        if not os.path.exists(system_prompt_path):
-            messagebox.showerror("Error", "System prompt file not found.")
-            return
-        
-        if not os.path.exists(user_prompt_path):
-            messagebox.showerror("Error", "User prompt file not found.")
-            return
-        
-        # Read prompts
-        try:
-            system_prompt = self.document_processor.read_text_file(system_prompt_path)
-            user_prompt = self.document_processor.read_text_file(user_prompt_path)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to read prompts: {str(e)}")
-            return
-        
-        # Ensure output folder exists
-        if output_folder:
+        # Run grading in a separate thread to keep UI responsive
+        def run_grading():
+            nonlocal progress_window
+            
             try:
-                FileUtils.ensure_dir_exists(output_folder)
+                # Update status 
+                self.update_progress_ui(status_var, "Validating inputs...")
+                
+                # Validate temperature
+                try:
+                    temperature = float(self.string_vars["temperature"].get())
+                    if temperature < 0 or temperature > 1:
+                        raise ValueError("Temperature must be between 0 and 1")
+                except ValueError as e:
+                    self.show_error_and_close(progress_window, f"Invalid temperature value: {str(e)}")
+                    return
+                
+                # Validate paths
+                if not api_key:
+                    self.show_error_and_close(progress_window, "API key is required.")
+                    return
+                    
+                if not os.path.exists(system_prompt_path):
+                    self.show_error_and_close(progress_window, "System prompt file not found.")
+                    return
+                    
+                if not os.path.exists(user_prompt_path):
+                    self.show_error_and_close(progress_window, "User prompt file not found.")
+                    return
+                
+                # Update status
+                self.update_progress_ui(status_var, "Loading prompt files...")
+                
+                # Read prompts
+                try:
+                    system_prompt = self.document_processor.read_text_file(system_prompt_path)
+                    user_prompt = self.document_processor.read_text_file(user_prompt_path)
+                except Exception as e:
+                    self.show_error_and_close(progress_window, f"Failed to read prompts: {str(e)}")
+                    return
+                
+                # Ensure output folder exists
+                if output_folder:
+                    try:
+                        FileUtils.ensure_dir_exists(output_folder)
+                    except Exception as e:
+                        self.show_error_and_close(progress_window, f"Failed to create output folder: {str(e)}")
+                        return
+                
+                # Process each selected submission
+                success_count = 0
+                fail_count = 0
+                
+                for i, index in enumerate(selected_indices):
+                    if not progress_window.winfo_exists():
+                        # User closed the window, stop processing
+                        return
+                        
+                    filename = self.file_list.get(index)
+                    submission_path = os.path.join(submissions_folder, filename)
+                    
+                    # Update progress UI
+                    self.update_progress_ui(current_file_var, filename)
+                    self.update_progress_ui(count_var, f"{i}/{total_submissions} completed")
+                    self.update_progress_ui(progress_var, i)
+                    self.update_progress_ui(status_var, f"Grading {filename}... (connecting to OpenAI)")
+                    
+                    # Update main status
+                    self.update_status(f"Grading: {filename}...")
+                    
+                    # Grade submission
+                    try:
+                        success, feedback = self.assessor.grade_submission(
+                            submission_file=submission_path,
+                            system_prompt=system_prompt,
+                            user_prompt=user_prompt,
+                            support_files=support_folder,
+                            output_folder=output_folder,
+                            model=model,
+                            temperature=temperature
+                        )
+                        
+                        if success:
+                            success_count += 1
+                            self.update_progress_ui(status_var, f"Successfully graded {filename}")
+                        else:
+                            fail_count += 1
+                            self.update_progress_ui(status_var, f"Failed to grade {filename}: {feedback}")
+                    except Exception as e:
+                        fail_count += 1
+                        self.update_progress_ui(status_var, f"Error grading {filename}: {str(e)}")
+                
+                # Final update
+                self.update_progress_ui(progress_var, total_submissions)
+                self.update_progress_ui(count_var, f"{total_submissions}/{total_submissions} completed")
+                self.update_progress_ui(status_var, "Finalizing...")
+                
+                # Close progress window and show result
+                self.complete_grading(progress_window, success_count, fail_count)
+                
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to create output folder: {str(e)}")
-                return
+                # Handle any unexpected errors
+                self.show_error_and_close(progress_window, f"Unexpected error: {str(e)}")
         
-        # Process each selected submission
-        success_count = 0
-        fail_count = 0
-        
-        for index in selected_indices:
-            filename = self.file_list.get(index)
-            submission_path = os.path.join(submissions_folder, filename)
+        # Start grading in a separate thread
+        import threading
+        threading.Thread(target=run_grading, daemon=True).start()
+    
+    def update_progress_ui(self, var, value):
+        """Update a tkinter variable in the main thread."""
+        if isinstance(var, tk.Variable):
+            var.set(value)
+        else:
+            # It's a progressbar value that needs to be set
+            var.set(value)
+        self.update_idletasks()
+    
+    def update_status(self, message):
+        """Update the status bar message."""
+        self.status_var.set(message)
+        self.update_idletasks()
+    
+    def show_error_and_close(self, progress_window, error_message):
+        """Show error message and close progress window."""
+        if progress_window.winfo_exists():
+            progress_window.destroy()
+        messagebox.showerror("Error", error_message)
+        self.status_var.set("Error: Grading failed")
+    
+    def complete_grading(self, progress_window, success_count, fail_count):
+        """Handle completion of grading process."""
+        if progress_window.winfo_exists():
+            progress_window.destroy()
             
-            # Update status
-            self.status_var.set(f"Grading: {filename}...")
-            self.update_idletasks()  # Force UI update
-            
-            # Grade submission
-            success, feedback = self.assessor.grade_submission(
-                submission_file=submission_path,
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                support_files=support_folder,
-                output_folder=output_folder,
-                model=model,
-                temperature=temperature
-            )
-            
-            if success:
-                success_count += 1
-            else:
-                fail_count += 1
-        
         # Update status and show result
         self.status_var.set(f"Grading completed: {success_count} succeeded, {fail_count} failed")
         messagebox.showinfo("Grading Complete", f"Graded {success_count} submissions successfully. {fail_count} failed.")
@@ -284,28 +407,11 @@ class GradingView(ttk.Frame):
         output_folder = self.string_vars["output_folder"].get()
         model = self.string_vars["model"].get()
         
-        # Validate temperature
-        try:
-            temperature = float(self.string_vars["temperature"].get())
-            if temperature < 0 or temperature > 1:
-                raise ValueError("Temperature must be between 0 and 1")
-        except ValueError as e:
-            messagebox.showerror("Error", f"Invalid temperature value: {str(e)}")
-            return
-        
-        # Validate paths
+        # Validate basic settings first
         if not api_key:
             messagebox.showerror("Error", "API key is required.")
             return
-        
-        if not os.path.exists(system_prompt_path):
-            messagebox.showerror("Error", "System prompt file not found.")
-            return
-        
-        if not os.path.exists(user_prompt_path):
-            messagebox.showerror("Error", "User prompt file not found.")
-            return
-        
+            
         # Confirm with user
         file_count = self.file_list.size()
         if file_count == 0:
@@ -319,35 +425,166 @@ class GradingView(ttk.Frame):
         
         if not confirm:
             return
+            
+        # Create a progress dialog
+        progress_window = tk.Toplevel(self)
+        progress_window.title("Grading All Submissions")
+        progress_window.geometry("450x220")
+        progress_window.transient(self)
+        progress_window.grab_set()
+        progress_window.resizable(False, False)
         
-        # Read prompts
-        try:
-            system_prompt = self.document_processor.read_text_file(system_prompt_path)
-            user_prompt = self.document_processor.read_text_file(user_prompt_path)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to read prompts: {str(e)}")
-            return
+        # Center the window
+        progress_window.update_idletasks()
+        window_width = progress_window.winfo_width()
+        window_height = progress_window.winfo_height()
+        x_offset = (progress_window.winfo_screenwidth() - window_width) // 2
+        y_offset = (progress_window.winfo_screenheight() - window_height) // 2
+        progress_window.geometry(f"+{x_offset}+{y_offset}")
         
-        # Update status
-        self.status_var.set("Grading all submissions...")
-        self.update_idletasks()  # Force UI update
+        # Create a frame for the progress information
+        frame = ttk.Frame(progress_window, padding=20)
+        frame.pack(fill="both", expand=True)
         
-        # Grade all submissions
-        success_count, fail_count, results = self.assessor.grade_all_submissions(
-            submissions_folder=submissions_folder,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            support_files=support_folder,
-            output_folder=output_folder,
-            model=model,
-            temperature=temperature
-        )
+        # Header
+        ttk.Label(
+            frame, 
+            text=f"Grading {file_count} submissions", 
+            font=("Helvetica", 12, "bold")
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
         
-        # Update status and show result
-        self.status_var.set(f"Grading completed: {success_count} succeeded, {fail_count} failed")
-        messagebox.showinfo("Grading Complete", f"Graded {success_count} submissions successfully. {fail_count} failed.")
+        # Add a label showing current status
+        current_file_var = tk.StringVar(value="Initializing...")
+        ttk.Label(frame, text="Current:").grid(row=1, column=0, sticky="w", pady=(0, 5))
+        ttk.Label(frame, textvariable=current_file_var, font=("Helvetica", 10, "bold")).grid(row=1, column=1, sticky="w", pady=(0, 5))
         
-        # Refresh the feedback display if a submission is selected
-        current_selection = self.file_list.curselection()
-        if current_selection:
-            self.display_feedback(self.file_list.get(current_selection[0]))
+        # Add progress bar
+        ttk.Label(frame, text="Progress:").grid(row=2, column=0, sticky="w", pady=(10, 5))
+        progress_var = tk.IntVar(value=0)
+        progress_bar = ttk.Progressbar(frame, variable=progress_var, maximum=file_count, length=300)
+        progress_bar.grid(row=2, column=1, sticky="ew", pady=(10, 5))
+        
+        # Add submission count info
+        count_var = tk.StringVar(value=f"0/{file_count} completed")
+        ttk.Label(frame, textvariable=count_var).grid(row=3, column=1, sticky="e", pady=(5, 15))
+        
+        # Add status message
+        status_var = tk.StringVar(value="Starting grading process...")
+        ttk.Label(frame, textvariable=status_var, wraplength=350).grid(row=4, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        
+        # Add activity indicator
+        activity_frame = ttk.Frame(frame)
+        activity_frame.grid(row=5, column=0, columnspan=2, pady=(15, 0))
+        activity_bar = ttk.Progressbar(activity_frame, mode="indeterminate", length=300)
+        activity_bar.pack()
+        activity_bar.start()
+        
+        # Configure grid for frame
+        frame.columnconfigure(1, weight=1)
+        
+        # Force update to show the window
+        progress_window.update()
+        
+        # Run grading in a separate thread to keep UI responsive
+        def run_grading():
+            nonlocal progress_window
+            
+            try:
+                # Update status 
+                self.update_progress_ui(status_var, "Validating inputs...")
+                
+                # Validate temperature
+                try:
+                    temperature = float(self.string_vars["temperature"].get())
+                    if temperature < 0 or temperature > 1:
+                        raise ValueError("Temperature must be between 0 and 1")
+                except ValueError as e:
+                    self.show_error_and_close(progress_window, f"Invalid temperature value: {str(e)}")
+                    return
+                    
+                # Validate paths
+                if not os.path.exists(system_prompt_path):
+                    self.show_error_and_close(progress_window, "System prompt file not found.")
+                    return
+                    
+                if not os.path.exists(user_prompt_path):
+                    self.show_error_and_close(progress_window, "User prompt file not found.")
+                    return
+                
+                # Read prompts
+                self.update_progress_ui(status_var, "Reading prompt files...")
+                try:
+                    system_prompt = self.document_processor.read_text_file(system_prompt_path)
+                    user_prompt = self.document_processor.read_text_file(user_prompt_path)
+                except Exception as e:
+                    self.show_error_and_close(progress_window, f"Failed to read prompts: {str(e)}")
+                    return
+                
+                # Get file list
+                self.update_progress_ui(status_var, "Getting submission files...")
+                filenames = []
+                for i in range(file_count):
+                    filenames.append(self.file_list.get(i))
+                
+                # Process submissions
+                success_count = 0
+                fail_count = 0
+                results = {}
+                
+                for i, filename in enumerate(filenames):
+                    if not progress_window.winfo_exists():
+                        # User closed the window, stop processing
+                        return
+                        
+                    submission_path = os.path.join(submissions_folder, filename)
+                    
+                    # Update progress UI
+                    self.update_progress_ui(current_file_var, filename)
+                    self.update_progress_ui(count_var, f"{i}/{file_count} completed")
+                    self.update_progress_ui(progress_var, i)
+                    self.update_progress_ui(status_var, f"Grading {filename}... (connecting to OpenAI)")
+                    
+                    # Update main status
+                    self.update_status(f"Grading: {filename}...")
+                    
+                    # Grade submission
+                    try:
+                        success, feedback = self.assessor.grade_submission(
+                            submission_file=submission_path,
+                            system_prompt=system_prompt,
+                            user_prompt=user_prompt,
+                            support_files=support_folder,
+                            output_folder=output_folder,
+                            model=model,
+                            temperature=temperature
+                        )
+                        
+                        # Track results
+                        results[filename] = {"success": success, "feedback": feedback}
+                        
+                        if success:
+                            success_count += 1
+                            self.update_progress_ui(status_var, f"Successfully graded {filename}")
+                        else:
+                            fail_count += 1
+                            self.update_progress_ui(status_var, f"Failed to grade {filename}")
+                    except Exception as e:
+                        fail_count += 1
+                        results[filename] = {"success": False, "feedback": str(e)}
+                        self.update_progress_ui(status_var, f"Error grading {filename}: {str(e)}")
+                
+                # Final update
+                self.update_progress_ui(progress_var, file_count)
+                self.update_progress_ui(count_var, f"{file_count}/{file_count} completed")
+                self.update_progress_ui(status_var, "Finalizing...")
+                
+                # Close progress window and show result
+                self.complete_grading(progress_window, success_count, fail_count)
+                
+            except Exception as e:
+                # Handle any unexpected errors
+                self.show_error_and_close(progress_window, f"Unexpected error: {str(e)}")
+        
+        # Start grading in a separate thread
+        import threading
+        threading.Thread(target=run_grading, daemon=True).start()
