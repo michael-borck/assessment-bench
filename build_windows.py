@@ -15,12 +15,31 @@ def build_windows_executable():
     """
     print("Beginning build process for AI Assessor Windows standalone...")
     
+    # Print Python and OS information for debugging
+    print(f"Python version: {sys.version}")
+    print(f"Platform: {sys.platform}")
+    print(f"Current directory: {os.getcwd()}")
+    
     # Check if PyInstaller is installed
     try:
         import PyInstaller
+        print(f"PyInstaller version: {PyInstaller.__version__}")
     except ImportError:
         print("PyInstaller not found. Installing...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], check=True)
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], check=True)
+            print("PyInstaller installation completed.")
+            
+            # Verify installation
+            import importlib
+            importlib.invalidate_caches()
+            import PyInstaller
+            print(f"PyInstaller version: {PyInstaller.__version__}")
+        except Exception as e:
+            print(f"Error installing PyInstaller: {e}")
+            print("Please try manually installing PyInstaller with: pip install pyinstaller")
+            print("Then run this script again.")
+            sys.exit(1)
     
     # Create build spec for PyInstaller
     print("Creating PyInstaller spec file...")
@@ -74,7 +93,22 @@ exe = EXE(pyz,
     
     # Run PyInstaller
     print("Running PyInstaller...")
-    subprocess.run(["pyinstaller", "--clean", "ai_assessor.spec"], check=True)
+    try:
+        # Use python -m pyinstaller to ensure we're using the installed package
+        print(f"Running command: {sys.executable} -m pyinstaller --clean ai_assessor.spec")
+        subprocess.run([sys.executable, "-m", "pyinstaller", "--clean", "ai_assessor.spec"], 
+                      check=True, 
+                      capture_output=False)
+    except subprocess.CalledProcessError as e:
+        print(f"PyInstaller failed with error code {e.returncode}")
+        print("Error output:")
+        print(e.stderr if hasattr(e, 'stderr') else "No error output available")
+        print("\nPlease check if PyInstaller is correctly installed and the spec file is valid.")
+        print("You can try running: python -m PyInstaller --clean ai_assessor.spec")
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred while running PyInstaller: {e}")
+        sys.exit(1)
     
     # Create distribution folder structure
     dist_folder = os.path.join("dist", "AI_Assessor")
