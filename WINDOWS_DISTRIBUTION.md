@@ -4,26 +4,47 @@ This document explains how to build and distribute the AI Assessor application f
 
 ## Building the Windows Executable
 
+### Easy Method (Recommended)
+
 1. **Setup Windows Environment**
-   - You need a Windows machine with Python installed
+   - You need a Windows machine with Python 3.8 or higher installed
    - Clone or download this repository to the Windows machine
+
+2. **Run the Setup Batch File**
+   - Double-click on `setup_build_windows.bat` or run it from Command Prompt
+   - This script will:
+     - Create a virtual environment
+     - Install all required packages including PyInstaller
+     - Guide you through the build process
+
+3. **Building**
+   - The batch file will offer to run the build script automatically
+   - If you choose not to run it immediately, you can run it later with:
+     ```
+     venv\Scripts\activate
+     python build_windows.py
+     ```
+
+### Manual Method
+
+If you prefer to do the setup manually:
+
+1. **Create and Activate a Virtual Environment**
+   ```
+   python -m venv venv
+   venv\Scripts\activate
+   ```
 
 2. **Install Requirements**
    ```
    pip install -r requirements.txt
+   pip install pyinstaller
    ```
 
 3. **Run the Build Script**
    ```
    python build_windows.py
    ```
-   This will:
-   - Create a PyInstaller spec file
-   - Build the executable
-   - Create the folder structure
-   - Copy example files
-   - Generate a default config.ini
-   - Create a README file for users
 
 4. **The Build Process**
    - PyInstaller will package the application into a standalone executable

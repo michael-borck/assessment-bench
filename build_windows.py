@@ -2,12 +2,20 @@
 """
 Build script for creating a standalone Windows executable using PyInstaller.
 Run this script on a Windows machine to create the distributable package.
+
+IMPORTANT: This script should be run in a virtual environment:
+1. python -m venv venv
+2. venv\Scripts\activate
+3. pip install -r requirements.txt
+4. pip install pyinstaller
+5. python build_windows.py
 """
 
 import os
 import shutil
 import subprocess
 import sys
+import site
 
 def build_windows_executable():
     """
@@ -20,11 +28,57 @@ def build_windows_executable():
     print(f"Platform: {sys.platform}")
     print(f"Current directory: {os.getcwd()}")
     
-    # Check if PyInstaller is installed
+    # Check if we're in a virtual environment
+    in_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    if not in_venv:
+        print("WARNING: It's recommended to run this script in a virtual environment.")
+        print("Please consider creating and activating a virtual environment first:")
+        print("1. python -m venv venv")
+        print("2. venv\\Scripts\\activate (Windows) or source venv/bin/activate (Unix)")
+        print("3. pip install -r requirements.txt")
+        print("4. pip install pyinstaller")
+        print()
+        response = input("Continue anyway? (y/n): ")
+        if response.lower() != 'y':
+            print("Exiting. Please run the script in a virtual environment.")
+            sys.exit(0)
+    
+    # Check PyInstaller installation
+    pyinstaller_found = False
+    
+    # Method 1: Try importing PyInstaller
     try:
         import PyInstaller
+        pyinstaller_found = True
         print(f"PyInstaller version: {PyInstaller.__version__}")
     except ImportError:
+        print("PyInstaller module not found.")
+    
+    # Method 2: Check if pyinstaller executable is in PATH
+    if not pyinstaller_found:
+        try:
+            pyinstaller_path = shutil.which("pyinstaller")
+            if pyinstaller_path:
+                pyinstaller_found = True
+                print(f"PyInstaller executable found at: {pyinstaller_path}")
+            else:
+                print("PyInstaller executable not found in PATH.")
+        except Exception:
+            print("Failed to check for PyInstaller in PATH.")
+    
+    # Method 3: Check in site-packages
+    if not pyinstaller_found:
+        site_packages = site.getsitepackages()
+        print(f"Checking site-packages directories: {site_packages}")
+        for sp in site_packages:
+            pyinstaller_dir = os.path.join(sp, "PyInstaller")
+            if os.path.exists(pyinstaller_dir):
+                pyinstaller_found = True
+                print(f"PyInstaller found in site-packages: {pyinstaller_dir}")
+                break
+    
+    # Install if not found
+    if not pyinstaller_found:
         print("PyInstaller not found. Installing...")
         try:
             subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], check=True)
@@ -33,13 +87,29 @@ def build_windows_executable():
             # Verify installation
             import importlib
             importlib.invalidate_caches()
-            import PyInstaller
-            print(f"PyInstaller version: {PyInstaller.__version__}")
+            try:
+                import PyInstaller
+                print(f"PyInstaller version: {PyInstaller.__version__}")
+                pyinstaller_found = True
+            except ImportError:
+                print("WARNING: PyInstaller module still not available after installation.")
+                
+            # Check executable after installation
+            pyinstaller_path = shutil.which("pyinstaller")
+            if pyinstaller_path:
+                print(f"PyInstaller executable now available at: {pyinstaller_path}")
+                pyinstaller_found = True
         except Exception as e:
             print(f"Error installing PyInstaller: {e}")
             print("Please try manually installing PyInstaller with: pip install pyinstaller")
             print("Then run this script again.")
             sys.exit(1)
+    
+    if not pyinstaller_found:
+        print("ERROR: Could not find or install PyInstaller.")
+        print("Please install it manually with: pip install pyinstaller")
+        print("Then run this script again.")
+        sys.exit(1)
     
     # Create build spec for PyInstaller
     print("Creating PyInstaller spec file...")
@@ -94,18 +164,92 @@ exe = EXE(pyz,
     # Run PyInstaller
     print("Running PyInstaller...")
     try:
-        # Use python -m pyinstaller to ensure we're using the installed package
-        print(f"Running command: {sys.executable} -m pyinstaller --clean ai_assessor.spec")
-        subprocess.run([sys.executable, "-m", "pyinstaller", "--clean", "ai_assessor.spec"], 
-                      check=True, 
-                      capture_output=False)
-    except subprocess.CalledProcessError as e:
-        print(f"PyInstaller failed with error code {e.returncode}")
-        print("Error output:")
-        print(e.stderr if hasattr(e, 'stderr') else "No error output available")
-        print("\nPlease check if PyInstaller is correctly installed and the spec file is valid.")
-        print("You can try running: python -m PyInstaller --clean ai_assessor.spec")
-        sys.exit(1)
+        # Try different methods to run PyInstaller
+        pyinstaller_success = False
+        
+        # Method 1: Use python -m pyinstaller
+        print("Attempting to run: python -m pyinstaller")
+        try:
+            print(f"Running command: {sys.executable} -m PyInstaller --clean ai_assessor.spec")
+            result = subprocess.run(
+                [sys.executable, "-m", "PyInstaller", "--clean", "ai_assessor.spec"],
+                check=False,  # Don't raise exception so we can try other methods
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                print("PyInstaller completed successfully.")
+                pyinstaller_success = True
+            else:
+                print(f"Failed with return code {result.returncode}")
+                print("Output:")
+                print(result.stdout)
+                print("Error:")
+                print(result.stderr)
+        except Exception as e:
+            print(f"Error running python -m PyInstaller: {e}")
+        
+        # Method 2: Try using pyinstaller command directly
+        if not pyinstaller_success:
+            print("\nAttempting to run pyinstaller directly")
+            pyinstaller_cmd = shutil.which("pyinstaller")
+            if pyinstaller_cmd:
+                try:
+                    print(f"Running command: {pyinstaller_cmd} --clean ai_assessor.spec")
+                    result = subprocess.run(
+                        [pyinstaller_cmd, "--clean", "ai_assessor.spec"],
+                        check=False,
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        print("PyInstaller completed successfully.")
+                        pyinstaller_success = True
+                    else:
+                        print(f"Failed with return code {result.returncode}")
+                        print("Output:")
+                        print(result.stdout)
+                        print("Error:")
+                        print(result.stderr)
+                except Exception as e:
+                    print(f"Error running pyinstaller command: {e}")
+            else:
+                print("PyInstaller command not found in PATH.")
+        
+        # Method 3: Try using Scripts\pyinstaller.exe (for Windows)
+        if not pyinstaller_success and sys.platform.startswith('win'):
+            print("\nAttempting to run PyInstaller from Scripts directory")
+            scripts_dir = os.path.join(os.path.dirname(sys.executable), "Scripts")
+            pyinstaller_exe = os.path.join(scripts_dir, "pyinstaller.exe")
+            
+            if os.path.exists(pyinstaller_exe):
+                try:
+                    print(f"Running command: {pyinstaller_exe} --clean ai_assessor.spec")
+                    result = subprocess.run(
+                        [pyinstaller_exe, "--clean", "ai_assessor.spec"],
+                        check=False,
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        print("PyInstaller completed successfully.")
+                        pyinstaller_success = True
+                    else:
+                        print(f"Failed with return code {result.returncode}")
+                        print("Output:")
+                        print(result.stdout)
+                        print("Error:")
+                        print(result.stderr)
+                except Exception as e:
+                    print(f"Error running PyInstaller from Scripts: {e}")
+            else:
+                print(f"PyInstaller not found at {pyinstaller_exe}")
+        
+        if not pyinstaller_success:
+            print("\nAll PyInstaller execution methods failed.")
+            print("Please try manually running: python -m PyInstaller --clean ai_assessor.spec")
+            sys.exit(1)
+            
     except Exception as e:
         print(f"An unexpected error occurred while running PyInstaller: {e}")
         sys.exit(1)
