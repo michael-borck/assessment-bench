@@ -302,6 +302,20 @@ class ConfigView(ttk.Frame):
                 
                 self.available_models = gpt4_models + gpt35_models
                 
+                # Save models to config.ini
+                # First clear existing models section
+                if self.config_manager.config.has_section("Models"):
+                    self.config_manager.config.remove_section("Models")
+                
+                self.config_manager.config.add_section("Models")
+                
+                # Add each model to config
+                for model_id in self.available_models:
+                    self.config_manager.set_value("Models", model_id, model_id)
+                
+                # Save config
+                self.config_manager.save()
+                
                 # Mark as complete to avoid timeout
                 fetch_complete = True
                 
@@ -330,9 +344,34 @@ class ConfigView(ttk.Frame):
             # Check if dialog still exists before trying to destroy it
             if loading_dialog.winfo_exists():
                 if self.available_models:
+                    # Update dropdown
                     self.model_dropdown['values'] = self.available_models
+                    
+                    # Close loading dialog
                     loading_dialog.destroy()
-                    tk.messagebox.showinfo("Models Updated", f"Found {len(self.available_models)} available models.")
+                    
+                    # Show success message
+                    tk.messagebox.showinfo("Models Updated", 
+                                        f"Found {len(self.available_models)} available models.\n"
+                                        f"These models have been saved to your configuration.")
+                    
+                    # Refresh manage models dialog if it's open
+                    for widget in self.winfo_toplevel().winfo_children():
+                        if isinstance(widget, tk.Toplevel) and widget.title() == "Manage Models":
+                            # There's an open Manage Models dialog - refresh it
+                            try:
+                                # Find the listbox in the dialog
+                                for child in widget.winfo_children():
+                                    listbox = self._find_listbox_in_widget(child)
+                                    if listbox:
+                                        # Refresh the listbox
+                                        listbox.delete(0, tk.END)
+                                        for model_name in self.config_manager.config["Models"].keys():
+                                            listbox.insert(tk.END, model_name)
+                                        break
+                            except Exception:
+                                # If anything goes wrong, don't worry - user can close and reopen
+                                pass
                 else:
                     loading_dialog.destroy()
                     tk.messagebox.showwarning("No Models Found", "No compatible models were found. Using default models.")
@@ -346,6 +385,20 @@ class ConfigView(ttk.Frame):
         except Exception:
             # Handle any unexpected errors
             self.model_dropdown['values'] = ["gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"]
+    
+    def _find_listbox_in_widget(self, widget):
+        """Recursively search for a Listbox widget in children."""
+        if isinstance(widget, tk.Listbox):
+            return widget
+        
+        # Check all children
+        if hasattr(widget, 'winfo_children'):
+            for child in widget.winfo_children():
+                result = self._find_listbox_in_widget(child)
+                if result:
+                    return result
+        
+        return None
     
     def _handle_refresh_error(self, error, loading_dialog):
         """Handle errors when refreshing models."""
@@ -368,7 +421,7 @@ class ConfigView(ttk.Frame):
         # Create a new dialog window
         dialog = tk.Toplevel(self)
         dialog.title("Manage Models")
-        dialog.geometry("500x400")
+        dialog.geometry("500x480")
         dialog.transient(self)  # Make dialog modal
         dialog.grab_set()  # Make dialog modal
         
@@ -377,8 +430,14 @@ class ConfigView(ttk.Frame):
         frame.pack(fill=tk.BOTH, expand=True)
         
         # Description label
-        ttk.Label(frame, text="Manage the available models for AI Assessor", 
-                 wraplength=480).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
+        description = (
+            "Manage the available models for AI Assessor.\n\n"
+            "You can add custom models, remove models you don't use, "
+            "or use 'Refresh Models' button to fetch the latest models from OpenAI."
+        )
+        ttk.Label(frame, text=description, wraplength=480).grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 15)
+        )
         
         # Create a model list with scrollbar
         list_frame = ttk.Frame(frame)
@@ -388,17 +447,46 @@ class ConfigView(ttk.Frame):
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         # Create a listbox with current models
-        model_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, height=10)
+        model_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, height=10, font=("Helvetica", 10))
         model_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=model_listbox.yview)
         
         # Populate the listbox with current models
-        for model_name in self.config_manager.config["Models"].keys():
-            model_listbox.insert(tk.END, model_name)
+        if self.config_manager.config.has_section("Models"):
+            for model_name in self.config_manager.config["Models"].keys():
+                model_listbox.insert(tk.END, model_name)
+        
+        # Frame for model management buttons
+        buttons_frame = ttk.Frame(frame)
+        buttons_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=10)
+        
+        # Refresh button to update models from OpenAI
+        ttk.Button(
+            buttons_frame, 
+            text="Refresh Models from OpenAI", 
+            command=lambda: self._refresh_from_manage_dialog(dialog)
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Remove button
+        ttk.Button(
+            buttons_frame, 
+            text="Remove Selected", 
+            command=lambda: self._remove_model(model_listbox)
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Separator
+        ttk.Separator(frame, orient="horizontal").grid(
+            row=3, column=0, columnspan=2, sticky="ew", pady=15
+        )
+        
+        # Add custom model section
+        ttk.Label(frame, text="Add Custom Model", font=("Helvetica", 10, "bold")).grid(
+            row=4, column=0, columnspan=2, sticky="w", pady=(0, 10)
+        )
         
         # Frame for new model addition
         add_frame = ttk.Frame(frame)
-        add_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=10)
+        add_frame.grid(row=5, column=0, columnspan=2, sticky="ew", pady=5)
         
         ttk.Label(add_frame, text="Model Name:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
         model_name_var = tk.StringVar()
@@ -410,10 +498,18 @@ class ConfigView(ttk.Frame):
         model_id_entry = ttk.Entry(add_frame, textvariable=model_id_var)
         model_id_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
         
-        # Buttons for adding/removing models
-        buttons_frame = ttk.Frame(frame)
-        buttons_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=10)
+        ttk.Label(
+            add_frame, 
+            text="Note: For most models, Name and ID are the same value (e.g., 'gpt-4-turbo')",
+            font=("Helvetica", 9),
+            foreground="gray"
+        ).grid(row=2, column=0, columnspan=2, sticky="w", padx=5, pady=5)
         
+        # Frame for add and close buttons
+        action_buttons = ttk.Frame(frame)
+        action_buttons.grid(row=6, column=0, columnspan=2, sticky="ew", pady=10)
+        
+        # Add model function
         def add_model():
             name = model_name_var.get().strip()
             model_id = model_id_var.get().strip()
@@ -423,6 +519,9 @@ class ConfigView(ttk.Frame):
                 return
                 
             # Add to config
+            if not self.config_manager.config.has_section("Models"):
+                self.config_manager.config.add_section("Models")
+                
             self.config_manager.set_value("Models", name, model_id)
             self.config_manager.save()
             
@@ -438,33 +537,8 @@ class ConfigView(ttk.Frame):
             
             tk.messagebox.showinfo("Success", f"Added model: {name}")
         
-        def remove_model():
-            # Get selected model
-            selected = model_listbox.curselection()
-            if not selected:
-                tk.messagebox.showwarning("Warning", "Please select a model to remove.")
-                return
-                
-            model_name = model_listbox.get(selected[0])
-            
-            # Confirm removal
-            if tk.messagebox.askyesno("Confirm", f"Are you sure you want to remove {model_name}?"):
-                # Remove from config
-                if self.config_manager.config.has_option("Models", model_name):
-                    self.config_manager.config.remove_option("Models", model_name)
-                    self.config_manager.save()
-                
-                # Remove from listbox
-                model_listbox.delete(selected[0])
-                
-                # Update dropdown in main view
-                self.model_dropdown["values"] = list(self.config_manager.config["Models"].keys())
-                
-                tk.messagebox.showinfo("Success", f"Removed model: {model_name}")
-        
-        ttk.Button(buttons_frame, text="Add Model", command=add_model).pack(side=tk.LEFT, padx=5)
-        ttk.Button(buttons_frame, text="Remove Selected", command=remove_model).pack(side=tk.LEFT, padx=5)
-        ttk.Button(buttons_frame, text="Close", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(action_buttons, text="Add Custom Model", command=add_model).pack(side=tk.LEFT, padx=5)
+        ttk.Button(action_buttons, text="Close", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
         
         # Configure grid weights
         frame.columnconfigure(0, weight=1)
@@ -473,3 +547,39 @@ class ConfigView(ttk.Frame):
         
         # Make dialog modal
         dialog.wait_window()
+    
+    def _refresh_from_manage_dialog(self, parent_dialog):
+        """Refresh models from within the manage models dialog."""
+        # Hide the manage dialog temporarily
+        parent_dialog.withdraw()
+        
+        # Call the regular refresh function 
+        self.refresh_models()
+        
+        # Show the manage dialog again after a short delay
+        self.winfo_toplevel().after(500, parent_dialog.deiconify)
+    
+    def _remove_model(self, model_listbox):
+        """Remove a model from the listbox and config."""
+        # Get selected model
+        selected = model_listbox.curselection()
+        if not selected:
+            tk.messagebox.showwarning("Warning", "Please select a model to remove.")
+            return
+            
+        model_name = model_listbox.get(selected[0])
+        
+        # Confirm removal
+        if tk.messagebox.askyesno("Confirm", f"Are you sure you want to remove {model_name}?"):
+            # Remove from config
+            if self.config_manager.config.has_option("Models", model_name):
+                self.config_manager.config.remove_option("Models", model_name)
+                self.config_manager.save()
+            
+            # Remove from listbox
+            model_listbox.delete(selected[0])
+            
+            # Update dropdown in main view
+            self.model_dropdown["values"] = list(self.config_manager.config["Models"].keys())
+            
+            tk.messagebox.showinfo("Success", f"Removed model: {model_name}")

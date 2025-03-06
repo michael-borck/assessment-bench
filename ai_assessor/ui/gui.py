@@ -137,16 +137,13 @@ class AIAssessorGUI:
             "temperature": tk.StringVar(value=self.config_manager.get_value("API", "Temperature", "0.7"))
         }
         
-        # Fetch available models if API key exists
-        self.splash.update_progress(50, "Checking for available models...")
+        # Load available models from config
+        self.splash.update_progress(50, "Loading available models...")
         self.available_models = []
-        api_key = self.string_vars["api_key"].get()
-        if api_key:
-            try:
-                self.fetch_available_models(api_key)
-            except Exception:
-                # If fetching fails, use default models
-                pass
+        
+        # Get models from config instead of API query
+        if self.config_manager.config.has_section("Models"):
+            self.available_models = list(self.config_manager.config["Models"].keys())
         
         # Setup UI
         self.splash.update_progress(70, "Building user interface...")
