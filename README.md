@@ -1,140 +1,113 @@
 # AI Assessor
 
-AI Assessor is a Python application designed to automate the grading of student submissions using OpenAI's API. It now features both a graphical user interface and a command-line interface, making it flexible for various use cases.
+A modern desktop application for automatically grading student submissions using multiple Large Language Model providers.
 
 ## Features
 
-- Multiple interface options:
-  - GUI for easy interaction and configuration
-  - CLI for automation and scripting
-- Grade student submissions (Word documents) using OpenAI's API
-- Load and edit system and user prompts
-- Include support files for reference during grading
-- Configure model parameters (GPT-3/GPT-4, temperature)
-- Grade individual or all student submissions
-- View student work alongside generated feedback
+- 🤖 **Multi-Provider LLM Support**: OpenAI, Anthropic, Groq, Ollama, OpenRouter
+- 📄 **Document Processing**: Grade Word documents with customizable rubrics
+- 🚀 **Modern UI**: Built with React and Tauri for a native desktop experience
+- 💻 **Cross-Platform**: Windows, macOS, and Linux support
+- 🔄 **Auto-Updates**: Built-in update mechanism
+- 📦 **Small Installer**: ~10-15MB per platform
 
-## Prerequisites
+## Tech Stack
 
-- Python 3.6 or higher
-- Required packages (see Installation)
+- **Frontend**: React + TypeScript + Vite
+- **Backend**: Rust + Tauri
+- **UI Components**: Modern React components (to be added)
+- **State Management**: Zustand (to be added)
 
-## Installation
+## Development
 
-### Using Anaconda (Optional)
+### Prerequisites
 
-If you are using Anaconda, you can create a new environment specifically for this project:
+- Node.js 18+
+- Rust 1.70+
+- Platform-specific dependencies:
+  - **Windows**: Microsoft C++ Build Tools
+  - **macOS**: Xcode Command Line Tools
+  - **Linux**: `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`
 
-1. **Create a New Anaconda Environment**
+### Setup
 
-   ```bash
-   conda create --name aiassessor python=3.11
-   conda activate aiassessor
-   ```
-
-2. **Install Required Packages**
-
-   ```bash
-   conda install -c anaconda tk
-   conda install -c conda-forge python-docx tqdm python-dotenv
-   pip install openai
-   ```
-
-### Using Native Python
-
-If you are not using Anaconda, you can set up a virtual environment using Python's built-in `venv`:
-
-1. **Create a Virtual Environment**
-
-   ```bash
-   python3 -m venv aiassessor_env
-   
-   # Activate:
-   # Windows: aiassessor_env\Scripts\activate
-   # macOS/Linux: source aiassessor_env/bin/activate
-   ```
-
-2. **Install Required Packages**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### Clone the Repository
-
+1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/aiassessor.git
-cd aiassessor
+git clone https://github.com/michael-borck/ai-assessor.git
+cd ai-assessor
 ```
 
-## Usage
-
-### GUI Interface
-
-Run the main application:
-
+2. Install dependencies:
 ```bash
-python main.py
+npm install
 ```
 
-1. In the "Configuration and Prompts" tab:
-   - Enter your OpenAI API key
-   - Set paths for system/user prompts
-   - Configure folders for submissions, support files, and outputs
-   - Select model and temperature
-
-2. In the "Grading" tab:
-   - View the list of submissions
-   - Select submissions to grade
-   - View submission content and feedback
-
-### Command-line Interface
-
-Run the CLI:
-
+3. Run in development mode:
 ```bash
-python aiassessor_cli.py [command] [options]
+npm run tauri:dev
 ```
 
-Available commands:
+### Building
 
-- `config`: Configure application settings
-  ```bash
-  python aiassessor_cli.py config --list
-  python aiassessor_cli.py config --set API.Key your_api_key
-  python aiassessor_cli.py config --get Paths.OutputFolder
-  ```
+To create a production build:
 
-- `grade`: Grade submissions
-  ```bash
-  # Grade a single file
-  python aiassessor_cli.py grade --file path/to/submission.docx
+```bash
+npm run tauri:build
+```
 
-  # Grade all files in a directory
-  python aiassessor_cli.py grade --dir path/to/submissions
-  ```
+This will create platform-specific installers in `src-tauri/target/release/bundle/`.
 
-- `interactive`: Start interactive CLI mode
-  ```bash
-  python aiassessor_cli.py interactive
-  ```
+## Project Structure
 
-## Contributing
+```
+ai-assessor/
+├── src/                    # React frontend
+│   ├── components/         # UI components
+│   ├── pages/             # Application pages
+│   ├── hooks/             # Custom React hooks
+│   ├── stores/            # State management
+│   └── lib/               # Utilities
+├── src-tauri/             # Rust backend
+│   ├── src/
+│   │   ├── commands/      # Tauri commands
+│   │   ├── llm/          # LLM provider implementations
+│   │   ├── grading/      # Core grading logic
+│   │   └── document/     # Document processing
+│   └── tauri.conf.json   # Tauri configuration
+├── prompts/              # Prompt templates
+└── package.json
+```
 
-Contributions to AI Assessor are welcome! Please follow these steps:
+## Roadmap
 
-1. Fork the repository.
-2. Create a new branch for your feature (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a pull request.
+### Phase 1 - MVP
+- [ ] Basic UI with file browser
+- [ ] OpenAI provider support
+- [ ] Single file grading
+- [ ] Simple prompt editing
+
+### Phase 2 - Multi-Provider
+- [ ] Anthropic, Groq, OpenRouter support
+- [ ] Ollama local model support
+- [ ] Provider switching UI
+- [ ] Streaming responses
+
+### Phase 3 - Enhanced Features
+- [ ] Batch grading
+- [ ] Monaco editor integration
+- [ ] Template library
+- [ ] Export to Word/PDF
+
+### Phase 4 - Polish
+- [ ] Auto-updates
+- [ ] Dark/light themes
+- [ ] Keyboard shortcuts
+- [ ] Grading history
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT
 
-## Contact
+## Contributing
 
-Your Name - email@example.com
-
-Project Link: https://github.com/yourusername/aiassessor
+Contributions are welcome! Please feel free to submit a Pull Request.

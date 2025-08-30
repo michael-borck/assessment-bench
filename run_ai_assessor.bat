@@ -1,3 +1,0 @@
-@echo off
-echo Starting AI Assessor...
-start "" "AI_Assessor.exe"
