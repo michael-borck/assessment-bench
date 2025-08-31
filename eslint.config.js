@@ -22,7 +22,12 @@ export default [
         React: 'readonly',
         process: 'readonly',
         setTimeout: 'readonly',
-        clearTimeout: 'readonly'
+        clearTimeout: 'readonly',
+        localStorage: 'readonly',
+        Blob: 'readonly',
+        URL: 'readonly',
+        HTMLInputElement: 'readonly',
+        navigator: 'readonly'
       }
     },
     plugins: {

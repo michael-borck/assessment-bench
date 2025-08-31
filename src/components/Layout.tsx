@@ -1,6 +1,5 @@
 import React from 'react'
 import { Sidebar } from './Sidebar'
-import { Header } from './Header'
 import { useAppStore } from '../stores/useAppStore'
 import { cn } from '../lib/utils'
 
@@ -24,12 +23,9 @@ export function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-auto p-4 lg:p-6 text-gray-900 dark:text-gray-50">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 overflow-auto bg-background text-foreground">
+        {children}
+      </main>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { FileInfo } from '../lib/tauri'
 
 export type LLMProvider = 'openai' | 'anthropic' | 'groq' | 'gemini' | 'ollama' | 'openrouter'
 
@@ -26,6 +27,7 @@ interface AppState {
   userPrompt: string
   
   // Files
+  files: FileInfo[]
   selectedFiles: string[]
   currentFile: string | null
   
@@ -36,6 +38,7 @@ interface AppState {
   updateProviderConfig: (provider: LLMProvider, config: Partial<ProviderConfig>) => void
   setSystemPrompt: (prompt: string) => void
   setUserPrompt: (prompt: string) => void
+  setFiles: (files: FileInfo[]) => void
   setSelectedFiles: (files: string[]) => void
   setCurrentFile: (file: string | null) => void
 }
@@ -63,6 +66,7 @@ export const useAppStore = create<AppState>()(
       userPrompt: '',
       
       // Initial Files
+      files: [],
       selectedFiles: [],
       currentFile: null,
       
@@ -79,6 +83,7 @@ export const useAppStore = create<AppState>()(
         })),
       setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
       setUserPrompt: (prompt) => set({ userPrompt: prompt }),
+      setFiles: (files) => set({ files: files }),
       setSelectedFiles: (files) => set({ selectedFiles: files }),
       setCurrentFile: (file) => set({ currentFile: file }),
     }),
