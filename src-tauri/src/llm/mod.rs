@@ -1,6 +1,7 @@
 pub mod provider;
 pub mod openai;
 pub mod anthropic;
+pub mod gemini;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,10 @@ pub struct LLMConfig {
     pub base_url: Option<String>,
 }
 
+// TODO: These LLMProvider methods will be implemented in Phase 2
+// They are defined now to establish the API contract for all providers
 #[async_trait]
+#[allow(dead_code)] // Temporary: Will be used when grading is implemented
 pub trait LLMProvider: Send + Sync {
     async fn complete(&self, config: &LLMConfig, messages: Vec<Message>) -> Result<String, Box<dyn std::error::Error>>;
     async fn stream(&self, config: &LLMConfig, messages: Vec<Message>) -> Result<Box<dyn futures::Stream<Item = Result<String, Box<dyn std::error::Error>>> + Unpin>, Box<dyn std::error::Error>>;

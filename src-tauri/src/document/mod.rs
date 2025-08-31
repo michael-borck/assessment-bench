@@ -15,6 +15,10 @@ pub enum DocumentType {
     Text,
 }
 
+// TODO: This function will be used to read and parse document files (Word, PDF, Text)
+// when implementing the actual file processing in Phase 2. Currently returns placeholder
+// data but the function signature establishes the API contract for document handling.
+#[allow(dead_code)]
 pub fn read_document(path: &Path) -> Result<Document, Box<dyn std::error::Error>> {
     // TODO: Implement document reading logic
     Ok(Document {

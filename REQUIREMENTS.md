@@ -19,6 +19,7 @@ The application must support multiple LLM providers with easy switching between 
 - **OpenAI** (GPT-3.5, GPT-4, GPT-4 Turbo)
 - **Anthropic** (Claude 3 Opus, Sonnet, Haiku)
 - **Groq** (Llama, Mixtral, Gemma models)
+- **Gemini** (Google's Gemini Pro, Gemini Flash, Gemini Ultra)
 - **Ollama** (Local models with custom URL and optional bearer token)
 - **OpenRouter** (Access to multiple models through single API)
 

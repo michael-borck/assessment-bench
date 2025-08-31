@@ -2,7 +2,50 @@ use serde::{Deserialize, Serialize};
 
 #[tauri::command]
 pub fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+    format!("Hello, {name}! You've been greeted from Rust!")
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileInfo {
+    pub name: String,
+    pub path: String,
+    pub size: u64,
+    pub modified: Option<String>,
+    pub is_docx: bool,
+}
+
+#[tauri::command]
+pub async fn browse_folder() -> Result<Vec<FileInfo>, String> {
+    // For now, return mock data - we'll implement actual folder browsing next
+    Ok(vec![
+        FileInfo {
+            name: "student_assignment_01.docx".to_string(),
+            path: "/path/to/student_assignment_01.docx".to_string(),
+            size: 1024,
+            modified: Some("2024-08-30T14:30:00Z".to_string()),
+            is_docx: true,
+        },
+        FileInfo {
+            name: "student_assignment_02.docx".to_string(),
+            path: "/path/to/student_assignment_02.docx".to_string(),
+            size: 2048,
+            modified: Some("2024-08-30T14:25:00Z".to_string()),
+            is_docx: true,
+        },
+        FileInfo {
+            name: "essay_draft_final.docx".to_string(),
+            path: "/path/to/essay_draft_final.docx".to_string(),
+            size: 3072,
+            modified: Some("2024-08-30T15:00:00Z".to_string()),
+            is_docx: true,
+        },
+    ])
+}
+
+#[tauri::command]
+pub async fn read_file_content(file_path: String) -> Result<String, String> {
+    // TODO: Implement actual Word document reading
+    Ok(format!("Content of file: {file_path}\n\nThis is a placeholder for the document content that will be extracted from the Word file."))
 }
 
 #[derive(Debug, Serialize, Deserialize)]

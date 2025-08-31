@@ -13,6 +13,8 @@ pub fn run() {
             commands::greet,
             commands::grade_submission,
             commands::test_llm_connection,
+            commands::browse_folder,
+            commands::read_file_content,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]

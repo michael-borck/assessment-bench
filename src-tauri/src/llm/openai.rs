@@ -2,10 +2,16 @@ use async_trait::async_trait;
 use super::{LLMProvider, LLMConfig, Message};
 
 pub struct OpenAIProvider {
+    // TODO: HTTP client will be used for making API calls to OpenAI in Phase 2
+    // Keeping it as a field ensures consistent client reuse across requests
+    #[allow(dead_code)]
     client: reqwest::Client,
 }
 
 impl OpenAIProvider {
+    // TODO: Constructor will be called from provider.rs when OpenAI is selected
+    // Currently unused but required for provider instantiation in Phase 2
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
