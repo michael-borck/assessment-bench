@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/username/assessment-bench.git"
+    "url": "git+https://github.com/michael-borck/assessment-bench.git"
   },
   "author": "Michael",
   "license": "MIT",

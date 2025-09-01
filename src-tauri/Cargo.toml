@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Research-grade benchmarking tool for AI-powered grading systems"
 authors = ["Michael"]
 license = "MIT"
-repository = "https://github.com/username/assessment-bench"
+repository = "https://github.com/michael-borck/assessment-bench"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
