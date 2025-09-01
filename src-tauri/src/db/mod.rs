@@ -3,8 +3,11 @@ use sqlx::{sqlite::SqlitePool, Pool, Sqlite};
 
 pub mod models;
 pub mod migrations;
+pub mod simple;
+pub mod test;
 
 use models::*;
+pub use simple::SimpleDatabase;
 
 #[derive(Clone)]
 pub struct Database {
@@ -36,51 +39,99 @@ impl Database {
         let id = uuid::Uuid::new_v4();
         let now = chrono::Utc::now();
         
-        let project = sqlx::query_as!(
-            Project,
+        let id_str = id.to_string();
+        let now_str = now.to_rfc3339();
+        let config_str = config.to_string();
+        
+        sqlx::query!(
             r#"
             INSERT INTO projects (id, name, description, config, created_at, updated_at)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-            RETURNING id, name, description, config, created_at, updated_at
             "#,
+            id_str,
+            name,
+            description,
+            config_str,
+            now_str,
+            now_str
+        )
+        .execute(&self.pool)
+        .await?;
+
+        let project = Project {
             id,
             name,
             description,
             config,
-            now,
-            now
-        )
-        .fetch_one(&self.pool)
-        .await?;
+            created_at: now,
+            updated_at: now,
+        };
 
         Ok(project)
     }
 
     pub async fn get_projects(&self) -> Result<Vec<Project>> {
-        let projects = sqlx::query_as!(
-            Project,
+        let rows = sqlx::query!(
             "SELECT id, name, description, config, created_at, updated_at FROM projects ORDER BY created_at DESC"
         )
         .fetch_all(&self.pool)
         .await?;
 
+        let mut projects = Vec::new();
+        for row in rows {
+            if let (Ok(id), Ok(created_at), Ok(updated_at), Ok(config)) = (
+                uuid::Uuid::parse_str(&row.id),
+                chrono::DateTime::parse_from_rfc3339(&row.created_at).map(|dt| dt.with_timezone(&chrono::Utc)),
+                chrono::DateTime::parse_from_rfc3339(&row.updated_at).map(|dt| dt.with_timezone(&chrono::Utc)),
+                serde_json::from_str::<serde_json::Value>(&row.config),
+            ) {
+                projects.push(Project {
+                    id,
+                    name: row.name,
+                    description: row.description,
+                    config,
+                    created_at,
+                    updated_at,
+                });
+            }
+        }
+
         Ok(projects)
     }
 
     pub async fn get_project(&self, id: uuid::Uuid) -> Result<Option<Project>> {
-        let project = sqlx::query_as!(
-            Project,
+        let id_str = id.to_string();
+        let row = sqlx::query!(
             "SELECT id, name, description, config, created_at, updated_at FROM projects WHERE id = ?",
-            id
+            id_str
         )
         .fetch_optional(&self.pool)
         .await?;
 
-        Ok(project)
+        if let Some(row) = row {
+            if let (Ok(id), Ok(created_at), Ok(updated_at), Ok(config)) = (
+                uuid::Uuid::parse_str(&row.id),
+                chrono::DateTime::parse_from_rfc3339(&row.created_at).map(|dt| dt.with_timezone(&chrono::Utc)),
+                chrono::DateTime::parse_from_rfc3339(&row.updated_at).map(|dt| dt.with_timezone(&chrono::Utc)),
+                serde_json::from_str::<serde_json::Value>(&row.config),
+            ) {
+                return Ok(Some(Project {
+                    id,
+                    name: row.name,
+                    description: row.description,
+                    config,
+                    created_at,
+                    updated_at,
+                }));
+            }
+        }
+
+        Ok(None)
     }
 
     pub async fn delete_project(&self, id: uuid::Uuid) -> Result<bool> {
-        let result = sqlx::query!("DELETE FROM projects WHERE id = ?", id)
+        let id_str = id.to_string();
+        let result = sqlx::query!("DELETE FROM projects WHERE id = ?", id_str)
             .execute(&self.pool)
             .await?;
 
@@ -89,14 +140,14 @@ impl Database {
 
     // Provider operations
     pub async fn add_provider(&self, provider: LLMProvider) -> Result<LLMProvider> {
-        let provider_json = serde_json::to_value(&provider)?;
+        let config_json = serde_json::to_string(&provider.config)?;
         
         sqlx::query!(
             "INSERT INTO llm_providers (id, name, provider_type, config) VALUES (?1, ?2, ?3, ?4)",
             provider.id,
             provider.name,
             provider.provider_type,
-            provider_json
+            config_json
         )
         .execute(&self.pool)
         .await?;
@@ -113,8 +164,13 @@ impl Database {
 
         let mut providers = Vec::new();
         for row in rows {
-            if let Ok(provider) = serde_json::from_value(row.config) {
-                providers.push(provider);
+            if let Ok(config) = serde_json::from_str(&row.config) {
+                providers.push(LLMProvider {
+                    id: row.id,
+                    name: row.name,
+                    provider_type: row.provider_type,
+                    config,
+                });
             }
         }
 

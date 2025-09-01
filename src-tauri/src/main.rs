@@ -9,14 +9,23 @@ mod llm;
 mod analysis;
 
 use commands::*;
-use db::Database;
+use db::{SimpleDatabase, test::run_database_tests};
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
 
+    // Run database tests during development
+    if std::env::var("SKIP_DB_TESTS").is_err() {
+        println!("🚀 Starting AssessmentBench...");
+        if let Err(e) = run_database_tests().await {
+            eprintln!("❌ Database tests failed: {}", e);
+            std::process::exit(1);
+        }
+    }
+
     // Initialize database
-    let database = Database::new().await.expect("Failed to initialize database");
+    let database = SimpleDatabase::new().await.expect("Failed to initialize database");
     database.migrate().await.expect("Failed to run migrations");
 
     tauri::Builder::default()
