@@ -16,6 +16,7 @@ pub fn run() {
             commands::test_llm_connection,
             commands::browse_folder,
             commands::read_file_content,
+            commands::browse_support_files,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
