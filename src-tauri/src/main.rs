@@ -35,7 +35,14 @@ async fn main() {
         .plugin(tauri_plugin_sql::Builder::default().build())
         .manage(database)
         .invoke_handler(tauri::generate_handler![
-            // Project management
+            // Simple project management (working commands)
+            create_project_simple,
+            list_projects_simple,
+            delete_project_simple,
+            add_provider_simple,
+            list_providers_simple,
+            
+            // Original project management (for future)
             create_project,
             get_projects,
             get_project,

@@ -11,12 +11,14 @@ mod provider;
 mod document;
 mod grading;
 mod analysis;
+mod simple_project;
 
 pub use project::*;
 pub use provider::*;
 pub use document::*;
 pub use grading::*;
 pub use analysis::*;
+pub use simple_project::*;
 
 // Common types used across commands
 #[derive(Debug, Serialize, Deserialize)]
