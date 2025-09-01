@@ -1,29 +1,135 @@
-import { Layout } from './components/Layout'
-import { GradingView } from './components/GradingView'
-import { SettingsView } from './components/SettingsView'
-import { HistoryView } from './components/HistoryView'
-import { useAppStore } from './stores/useAppStore'
+import { useState } from 'react'
+import { FileText, Settings, BarChart3, Plus } from 'lucide-react'
 
 function App() {
-  const currentView = useAppStore((state) => state.currentView)
-
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'grading':
-        return <GradingView />
-      case 'settings':
-        return <SettingsView />
-      case 'history':
-        return <HistoryView />
-      default:
-        return <GradingView />
-    }
-  }
+  const [activeTab, setActiveTab] = useState('projects')
 
   return (
-    <Layout>
-      {renderCurrentView()}
-    </Layout>
+    <div className="h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">AssessmentBench</h1>
+              <p className="text-sm text-gray-500">Research-grade AI grading benchmarks</p>
+            </div>
+          </div>
+          <button className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 flex items-center space-x-2">
+            <Plus className="w-4 h-4" />
+            <span>New Project</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <nav className="w-64 bg-white border-r border-gray-200 p-4">
+          <div className="space-y-2">
+            <button
+              onClick={() => setActiveTab('projects')}
+              className={`w-full text-left px-3 py-2 rounded-lg flex items-center space-x-3 ${
+                activeTab === 'projects' 
+                  ? 'bg-primary-50 text-primary-700 border border-primary-200' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Projects</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`w-full text-left px-3 py-2 rounded-lg flex items-center space-x-3 ${
+                activeTab === 'analytics' 
+                  ? 'bg-primary-50 text-primary-700 border border-primary-200' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Analytics</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-full text-left px-3 py-2 rounded-lg flex items-center space-x-3 ${
+                activeTab === 'settings' 
+                  ? 'bg-primary-50 text-primary-700 border border-primary-200' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto p-6">
+          {activeTab === 'projects' && (
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Projects</h2>
+                <p className="text-gray-600">Manage your AI assessment projects</p>
+              </div>
+              
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="text-center">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
+                  <p className="text-gray-600 mb-6">Create your first AI assessment project to get started</p>
+                  <button className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600">
+                    Create Project
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Analytics</h2>
+                <p className="text-gray-600">Compare grading tiers and analyze results</p>
+              </div>
+              
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="text-center">
+                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No data to analyze</h3>
+                  <p className="text-gray-600">Run some assessments to see analytics and comparisons</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Settings</h2>
+                <p className="text-gray-600">Configure LLM providers and application preferences</p>
+              </div>
+              
+              <div className="grid gap-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">LLM Providers</h3>
+                  <div className="text-center py-8">
+                    <Settings className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">Configure your LLM providers to start grading</p>
+                    <button className="mt-4 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600">
+                      Add Provider
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
   )
 }
 

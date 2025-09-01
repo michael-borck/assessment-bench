@@ -1,127 +1,126 @@
-use async_trait::async_trait;
-use super::{LLMProvider, LLMConfig, Message};
+use super::{LLMProvider, LLMRequest, LLMResponse};
+use crate::db::models::LLMProviderConfig;
+use anyhow::Result;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 pub struct OpenAIProvider {
-    client: reqwest::Client,
+    client: Client,
+    api_key: String,
+    base_url: String,
+    model: String,
 }
 
-impl OpenAIProvider {
-    pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
-    }
+#[derive(Serialize)]
+struct OpenAIRequest {
+    model: String,
+    messages: Vec<OpenAIMessage>,
+    temperature: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize)]
 struct OpenAIMessage {
     role: String,
     content: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct OpenAIRequest {
-    model: String,
-    messages: Vec<OpenAIMessage>,
-    temperature: f32,
-    max_tokens: Option<u32>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct OpenAIChoice {
-    message: OpenAIMessage,
-    finish_reason: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct OpenAIResponse {
-    id: String,
     choices: Vec<OpenAIChoice>,
     usage: Option<OpenAIUsage>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
+struct OpenAIChoice {
+    message: OpenAIMessage,
+}
+
+#[derive(Deserialize)]
 struct OpenAIUsage {
-    prompt_tokens: u32,
-    completion_tokens: u32,
     total_tokens: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct OpenAIError {
-    error: OpenAIErrorDetails,
-}
+impl OpenAIProvider {
+    pub fn new(config: &LLMProviderConfig) -> Result<Self> {
+        let api_key = config.api_key
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("OpenAI API key is required"))?
+            .clone();
 
-#[derive(Debug, Serialize, Deserialize)]
-struct OpenAIErrorDetails {
-    message: String,
-    #[serde(rename = "type")]
-    error_type: String,
-    code: Option<String>,
-}
+        let base_url = config.base_url
+            .as_ref()
+            .unwrap_or(&"https://api.openai.com/v1".to_string())
+            .clone();
 
-#[async_trait]
-impl LLMProvider for OpenAIProvider {
-    async fn complete(&self, config: &LLMConfig, messages: Vec<Message>) -> Result<String, Box<dyn std::error::Error>> {
-        let base_url = config.base_url.as_deref().unwrap_or("https://api.openai.com");
-        let url = format!("{}/v1/chat/completions", base_url);
-        
-        let openai_messages: Vec<OpenAIMessage> = messages.into_iter().map(|m| OpenAIMessage {
-            role: m.role,
-            content: m.content,
-        }).collect();
-        
-        let request_body = OpenAIRequest {
+        Ok(Self {
+            client: Client::new(),
+            api_key,
+            base_url,
             model: config.model.clone(),
-            messages: openai_messages,
-            temperature: config.temperature,
-            max_tokens: config.max_tokens,
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl LLMProvider for OpenAIProvider {
+    async fn generate(&self, request: LLMRequest) -> Result<LLMResponse> {
+        let mut messages = vec![];
+
+        // Add system prompt if provided
+        if let Some(system_prompt) = &request.system_prompt {
+            messages.push(OpenAIMessage {
+                role: "system".to_string(),
+                content: system_prompt.clone(),
+            });
+        }
+
+        // Add user prompt
+        messages.push(OpenAIMessage {
+            role: "user".to_string(),
+            content: request.prompt,
+        });
+
+        let openai_request = OpenAIRequest {
+            model: self.model.clone(),
+            messages,
+            temperature: request.temperature,
+            max_tokens: request.max_tokens,
         };
-        
-        let response = self.client
-            .post(&url)
-            .header("Authorization", format!("Bearer {}", config.api_key))
+
+        let response = self
+            .client
+            .post(&format!("{}/chat/completions", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
-            .json(&request_body)
+            .json(&openai_request)
             .send()
             .await?;
-        
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response.text().await?;
-            if let Ok(error_response) = serde_json::from_str::<OpenAIError>(&error_text) {
-                return Err(format!("OpenAI API error: {}", error_response.error.message).into());
-            } else {
-                return Err(format!("OpenAI API error: HTTP {}", status).into());
-            }
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow::anyhow!("OpenAI API error: {}", error_text));
         }
-        
-        let response_body = response.text().await?;
-        let openai_response: OpenAIResponse = serde_json::from_str(&response_body)?;
-        
-        if let Some(choice) = openai_response.choices.first() {
-            Ok(choice.message.content.clone())
-        } else {
-            Err("No completion choices returned".into())
-        }
+
+        let openai_response: OpenAIResponse = response.json().await?;
+
+        let choice = openai_response.choices
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("No response from OpenAI"))?;
+
+        Ok(LLMResponse {
+            content: choice.message.content.clone(),
+            tokens_used: openai_response.usage.map(|u| u.total_tokens),
+            model: self.model.clone(),
+        })
     }
-    
-    async fn stream(&self, _config: &LLMConfig, _messages: Vec<Message>) -> Result<Box<dyn futures::Stream<Item = Result<String, Box<dyn std::error::Error>>> + Unpin>, Box<dyn std::error::Error>> {
-        // Streaming implementation would be more complex and is not critical for the initial version
-        Err("Streaming not yet implemented for OpenAI".into())
+
+    fn model_name(&self) -> String {
+        self.model.clone()
     }
-    
-    async fn test_connection(&self, config: &LLMConfig) -> Result<bool, Box<dyn std::error::Error>> {
-        let base_url = config.base_url.as_deref().unwrap_or("https://api.openai.com");
-        let url = format!("{}/v1/models", base_url);
-        
-        let response = self.client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", config.api_key))
-            .send()
-            .await?;
-        
-        Ok(response.status().is_success())
+
+    fn provider_type(&self) -> String {
+        "openai".to_string()
     }
 }

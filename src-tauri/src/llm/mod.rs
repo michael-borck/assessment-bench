@@ -1,32 +1,29 @@
-pub mod provider;
-pub mod openai;
-pub mod anthropic;
-pub mod gemini;
-
-use async_trait::async_trait;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LLMConfig {
-    pub api_key: String,
-    pub model: String,
+pub mod provider;
+pub mod openai;
+
+pub use provider::*;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LLMRequest {
+    pub prompt: String,
+    pub system_prompt: Option<String>,
     pub temperature: f32,
     pub max_tokens: Option<u32>,
-    pub base_url: Option<String>,
 }
 
-// TODO: These LLMProvider methods will be implemented in Phase 2
-// They are defined now to establish the API contract for all providers
-#[async_trait]
-#[allow(dead_code)] // Temporary: Will be used when grading is implemented
-pub trait LLMProvider: Send + Sync {
-    async fn complete(&self, config: &LLMConfig, messages: Vec<Message>) -> Result<String, Box<dyn std::error::Error>>;
-    async fn stream(&self, config: &LLMConfig, messages: Vec<Message>) -> Result<Box<dyn futures::Stream<Item = Result<String, Box<dyn std::error::Error>>> + Unpin>, Box<dyn std::error::Error>>;
-    async fn test_connection(&self, config: &LLMConfig) -> Result<bool, Box<dyn std::error::Error>>;
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Message {
-    pub role: String,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LLMResponse {
     pub content: String,
+    pub tokens_used: Option<u32>,
+    pub model: String,
+}
+
+#[async_trait::async_trait]
+pub trait LLMProvider: Send + Sync {
+    async fn generate(&self, request: LLMRequest) -> Result<LLMResponse>;
+    fn model_name(&self) -> String;
+    fn provider_type(&self) -> String;
 }
