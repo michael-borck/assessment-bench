@@ -1,8 +1,8 @@
-# AI Assessor - Comprehensive Specification
+# AssessmentBench - Comprehensive Specification
 
 ## Executive Summary
 
-AI Assessor is a desktop application designed for educators and researchers to evaluate AI-powered grading systems. The application implements a Three-Tier Grading System with comprehensive analysis capabilities, post-processing validation, and comparative assessment tools. Built as a Tauri application for complete data control and privacy.
+AssessmentBench is a desktop application designed for educators and researchers to evaluate AI-powered grading systems. The application implements a Three-Tier Grading System with comprehensive analysis capabilities, post-processing validation, and comparative assessment tools. Built as a Tauri application for complete data control and privacy.
 
 ## Table of Contents
 1. [Application Overview](#application-overview)
@@ -19,7 +19,7 @@ AI Assessor is a desktop application designed for educators and researchers to e
 ## Application Overview
 
 ### Purpose
-AI Assessor enables systematic comparison of AI grading approaches to determine optimal configurations for different assignment types and contexts. The application serves both practical grading needs and research objectives.
+AssessmentBench enables systematic comparison of AI grading approaches to determine optimal configurations for different assignment types and contexts. The application serves both practical grading needs and research objectives.
 
 ### Key Capabilities
 - **Multi-Tier Grading**: Three distinct approaches from basic to comprehensive
