@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FileText, Settings, BarChart3, TestTube } from 'lucide-react'
 import ProjectManager from './components/ProjectManager'
 import TestingLab from './components/TestingLab'
+import ResultsDashboard from './components/ResultsDashboard'
 
 function App() {
   const [activeTab, setActiveTab] = useState('projects')
@@ -83,22 +84,7 @@ function App() {
           
           {activeTab === 'testing' && <TestingLab />}
 
-          {activeTab === 'analytics' && (
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Analytics</h2>
-                <p className="text-gray-600">Compare grading tiers and analyze results</p>
-              </div>
-              
-              <div className="bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-center">
-                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No data to analyze</h3>
-                  <p className="text-gray-600">Run some assessments to see analytics and comparisons</p>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === 'analytics' && <ResultsDashboard />}
 
           {activeTab === 'settings' && (
             <div className="max-w-4xl mx-auto">
