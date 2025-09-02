@@ -8,6 +8,7 @@ pub mod aggregation;
 
 pub use tiers::TierProcessor;
 pub use aggregation::ResultAggregator;
+pub use validation::ScoreValidator;
 
 pub struct GradingEngine {
     // Future: store configuration, caching, etc.

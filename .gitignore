@@ -26,8 +26,10 @@ dist-ssr
 
 # Tauri
 src-tauri/target/
+src-tauri/src-tauri/target/
 src-tauri/WixTools/
 src-tauri/Cargo.lock
+src-tauri/src-tauri/Cargo.lock
 
 # Environment variables
 .env
