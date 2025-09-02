@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { FileText, Settings, BarChart3, TestTube } from 'lucide-react'
+import { FileText, Settings, BarChart3, TestTube, GitCompare } from 'lucide-react'
 import ProjectManager from './components/ProjectManager'
 import TestingLab from './components/TestingLab'
 import ResultsDashboard from './components/ResultsDashboard'
+import ComparisonDashboard from './components/ComparisonDashboard'
 
 function App() {
   const [activeTab, setActiveTab] = useState('projects')
@@ -65,6 +66,18 @@ function App() {
             </button>
             
             <button
+              onClick={() => setActiveTab('comparison')}
+              className={`w-full text-left px-3 py-2 rounded-lg flex items-center space-x-3 ${
+                activeTab === 'comparison' 
+                  ? 'bg-primary-50 text-primary-700 border border-primary-200' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <GitCompare className="w-4 h-4" />
+              <span>Comparison</span>
+            </button>
+            
+            <button
               onClick={() => setActiveTab('settings')}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center space-x-3 ${
                 activeTab === 'settings' 
@@ -85,6 +98,8 @@ function App() {
           {activeTab === 'testing' && <TestingLab />}
 
           {activeTab === 'analytics' && <ResultsDashboard />}
+          
+          {activeTab === 'comparison' && <ComparisonDashboard />}
 
           {activeTab === 'settings' && (
             <div className="max-w-4xl mx-auto">

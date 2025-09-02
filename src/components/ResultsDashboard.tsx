@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, Activity, Target, Users, Clock, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Activity, Target, Users, Clock, CheckCircle, AlertTriangle, FileText, Download, Filter } from 'lucide-react';
+import { exportResults, ExportOptions } from '../utils/exportUtils';
 
 interface GradingResult {
   id: string;
@@ -29,6 +30,8 @@ const ResultsDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
   const [selectedProvider, setSelectedProvider] = useState('all');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     // Simulate loading data
@@ -214,6 +217,38 @@ const ResultsDashboard: React.FC = () => {
     }
   ];
 
+  // Export handler
+  const handleExport = async (format: 'csv' | 'json' | 'pdf') => {
+    try {
+      setExportLoading(true);
+      
+      const options: ExportOptions = {
+        format,
+        providers: selectedProvider === 'all' ? undefined : [selectedProvider],
+      };
+      
+      // Add date range filter based on selection
+      if (selectedTimeRange !== 'all') {
+        const now = new Date();
+        const daysBack = selectedTimeRange === '1d' ? 1 : selectedTimeRange === '7d' ? 7 : 30;
+        const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+        
+        options.dateRange = {
+          start: startDate,
+          end: now
+        };
+      }
+      
+      await exportResults(results, options);
+      setShowExportModal(false);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto p-6">
@@ -243,7 +278,7 @@ const ResultsDashboard: React.FC = () => {
             <p className="text-gray-600">Comprehensive analysis of AI grading performance</p>
           </div>
           
-          {/* Filters */}
+          {/* Filters and Export */}
           <div className="flex items-center space-x-4">
             <select
               value={selectedTimeRange}
@@ -266,6 +301,14 @@ const ResultsDashboard: React.FC = () => {
               <option value="Anthropic">Anthropic</option>
               <option value="Ollama">Ollama</option>
             </select>
+            
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
           </div>
         </div>
       </div>
@@ -469,6 +512,64 @@ const ResultsDashboard: React.FC = () => {
           </table>
         </div>
       </div>
+      
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Results</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => handleExport('csv')}
+                    disabled={exportLoading}
+                    className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <FileText className="w-4 h-4" />
+                    CSV
+                  </button>
+                  <button
+                    onClick={() => handleExport('json')}
+                    disabled={exportLoading}
+                    className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <FileText className="w-4 h-4" />
+                    JSON
+                  </button>
+                  <button
+                    onClick={() => handleExport('pdf')}
+                    disabled={exportLoading}
+                    className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <FileText className="w-4 h-4" />
+                    PDF
+                  </button>
+                </div>
+              </div>
+              
+              {exportLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
+                  <span className="ml-2 text-gray-600">Exporting...</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowExportModal(false)}
+                disabled={exportLoading}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
