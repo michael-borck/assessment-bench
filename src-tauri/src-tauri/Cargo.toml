@@ -1,0 +1,60 @@
+[package]
+name = "assessment-bench"
+version = "0.1.0"
+description = "Research-grade benchmarking tool for AI-powered grading systems"
+authors = ["Michael"]
+license = "MIT"
+repository = "https://github.com/michael-borck/assessment-bench"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+# Tauri core
+tauri = { version = "2.0", features = [] }
+tauri-plugin-fs = "2.0"
+tauri-plugin-dialog = "2.0"
+tauri-plugin-shell = "2.0"
+tauri-plugin-sql = { version = "2.0", features = ["sqlite"] }
+
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# Document processing
+pdf-extract = "0.7"
+docx-rs = "0.4"
+
+# Utilities
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "2.0"
+log = "0.4"
+env_logger = "0.11"
+
+# Cryptography (for secure API key storage)
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+
+# Additional utilities
+regex = "1.10"
+async-trait = "0.1"
+
+[features]
+# This feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { FileText, Settings, BarChart3, Plus } from 'lucide-react'
+import { FileText, Settings, BarChart3, TestTube } from 'lucide-react'
+import ProjectManager from './components/ProjectManager'
+import TestingLab from './components/TestingLab'
 
 function App() {
   const [activeTab, setActiveTab] = useState('projects')
@@ -18,10 +20,6 @@ function App() {
               <p className="text-sm text-gray-500">Research-grade AI grading benchmarks</p>
             </div>
           </div>
-          <button className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 flex items-center space-x-2">
-            <Plus className="w-4 h-4" />
-            <span>New Project</span>
-          </button>
         </div>
       </header>
 
@@ -41,6 +39,18 @@ function App() {
               <span>Projects</span>
             </button>
             
+            <button
+              onClick={() => setActiveTab('testing')}
+              className={`w-full text-left px-3 py-2 rounded-lg flex items-center space-x-3 ${
+                activeTab === 'testing' 
+                  ? 'bg-primary-50 text-primary-700 border border-primary-200' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <TestTube className="w-4 h-4" />
+              <span>Testing Lab</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('analytics')}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center space-x-3 ${
@@ -69,25 +79,9 @@ function App() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto p-6">
-          {activeTab === 'projects' && (
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Projects</h2>
-                <p className="text-gray-600">Manage your AI assessment projects</p>
-              </div>
-              
-              <div className="bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-center">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
-                  <p className="text-gray-600 mb-6">Create your first AI assessment project to get started</p>
-                  <button className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600">
-                    Create Project
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === 'projects' && <ProjectManager />}
+          
+          {activeTab === 'testing' && <TestingLab />}
 
           {activeTab === 'analytics' && (
             <div className="max-w-6xl mx-auto">

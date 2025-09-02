@@ -1,6 +1,7 @@
 {
   "name": "assessment-bench",
   "version": "0.1.0",
+  "type": "module",
   "description": "Research-grade benchmarking tool for AI-powered grading systems",
   "main": "index.js",
   "scripts": {
