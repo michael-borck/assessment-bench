@@ -59,6 +59,9 @@ pub struct DocumentAnalysis {
     pub sentence_variety_score: Option<f32>,
     pub vocabulary_richness: Option<f32>,
     
+    // DocumentLens integration - Enhanced analysis
+    pub documentlens_analysis: Option<crate::document_analysis::DocumentAnalysis>,
+    
     // Academic analysis (Tier 3)
     pub citations: Option<Vec<Citation>>,
     pub ai_detection_score: Option<f32>,

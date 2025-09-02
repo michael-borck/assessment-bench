@@ -60,31 +60,57 @@ Format your response clearly with sections for each component."#,
         submission: &Submission,
         rubric: &str,
     ) -> Result<(String, Option<String>)> {
-        // TODO: Integrate with DocumentLens API to get analysis
-        let analysis_text = if let Some(_analysis) = &submission.analysis_cache {
-            // Format analysis data into text
-            "Text analysis: Word count: {}, Reading level: {}, etc.".to_string()
+        // Get or create DocumentLens analysis
+        let analysis_text = if let Some(cached_analysis) = &submission.analysis_cache {
+            if let Some(documentlens_data) = &cached_analysis.documentlens_analysis {
+                documentlens_data.to_formatted_string()
+            } else {
+                // Perform DocumentLens analysis if not cached
+                match Self::analyze_document_with_lens(&submission.extracted_text).await {
+                    Ok(analysis) => analysis.to_formatted_string(),
+                    Err(e) => {
+                        log::warn!("Failed to perform DocumentLens analysis: {}", e);
+                        Self::fallback_analysis_text(submission)
+                    }
+                }
+            }
         } else {
-            "No analysis data available".to_string()
+            // Perform DocumentLens analysis
+            match Self::analyze_document_with_lens(&submission.extracted_text).await {
+                Ok(analysis) => analysis.to_formatted_string(),
+                Err(e) => {
+                    log::warn!("Failed to perform DocumentLens analysis: {}", e);
+                    Self::fallback_analysis_text(submission)
+                }
+            }
         };
 
         let system_prompt = Some(
-            "You are an expert academic grader with access to detailed text analysis. Use both the content and the analytical metrics to provide comprehensive grading.".to_string()
+            "You are an expert academic grader with access to detailed text analysis from DocumentLens. Use both the content and the comprehensive analytical metrics to provide thorough, evidence-based grading. Pay special attention to writing quality, readability, structure, and academic rigor as indicated by the analysis.".to_string()
         );
 
         let user_prompt = format!(
-            r#"Please grade the following submission using the provided rubric and text analysis:
+            r#"Please grade the following submission using the provided rubric and comprehensive text analysis:
 
 RUBRIC:
 {}
 
-TEXT ANALYSIS:
+DETAILED TEXT ANALYSIS:
 {}
 
 SUBMISSION:
 {}
 
-Use the text analysis to inform your grading, particularly for writing quality, readability, and technical aspects. Provide detailed feedback that incorporates both content assessment and writing quality metrics."#,
+GRADING INSTRUCTIONS:
+Use the detailed text analysis to inform your grading across multiple dimensions:
+
+1. CONTENT QUALITY: Use the depth of analysis, critical thinking, and argument strength metrics
+2. WRITING QUALITY: Consider clarity, coherence, grammar, and vocabulary diversity scores
+3. STRUCTURE: Evaluate based on paragraph coherence, logical flow, and structural analysis
+4. ACADEMIC RIGOR: Incorporate reading level, academic vocabulary usage, and evidence usage
+5. TECHNICAL ASPECTS: Consider sentence variety, linguistic features, and complexity
+
+Provide specific feedback that references the analytical metrics where relevant, and explain how the quantitative analysis supports your qualitative assessment."#,
             rubric,
             analysis_text,
             submission.extracted_text.as_ref().unwrap_or(&"No text extracted".to_string())
@@ -129,5 +155,43 @@ Provide detailed feedback that shows how the submission performs against the spe
         );
 
         Ok((user_prompt, system_prompt))
+    }
+
+    async fn analyze_document_with_lens(
+        text: &Option<String>,
+    ) -> Result<crate::document_analysis::DocumentAnalysis> {
+        use crate::document_analysis::{DocumentLensClient, models::AnalysisRequest};
+        
+        let text_content = text.as_ref().ok_or_else(|| anyhow::anyhow!("No text to analyze"))?;
+        
+        // Initialize DocumentLens client (API key would come from config)
+        let client = DocumentLensClient::new(None)?; // Use None for mock implementation
+        
+        let request = AnalysisRequest::new_academic(text_content.clone());
+        client.analyze_document(request).await
+    }
+
+    fn fallback_analysis_text(submission: &Submission) -> String {
+        let word_count = submission.word_count;
+        let default_text = "".to_string();
+        let text = submission.extracted_text.as_ref().unwrap_or(&default_text);
+        let sentence_count = text.matches(&['.', '!', '?'][..]).count();
+        let paragraph_count = text.split("\n\n").filter(|p| !p.trim().is_empty()).count();
+        
+        format!(
+            r#"BASIC TEXT ANALYSIS (DocumentLens unavailable):
+
+Basic Metrics:
+- Word Count: {}
+- Estimated Sentence Count: {}  
+- Estimated Paragraph Count: {}
+- Average Sentence Length: {:.1} words
+
+Note: Advanced writing quality metrics, readability scores, and structural analysis are unavailable. Grading will rely primarily on content assessment."#,
+            word_count,
+            sentence_count,
+            paragraph_count,
+            if sentence_count > 0 { word_count as f32 / sentence_count as f32 } else { 0.0 }
+        )
     }
 }

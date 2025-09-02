@@ -4,6 +4,7 @@
 mod commands;
 mod db;
 mod document;
+mod document_analysis;
 mod grading;
 mod llm;
 mod analysis;
@@ -78,7 +79,9 @@ async fn main() {
             
             // Analysis
             get_aggregated_results,
-            export_results
+            export_results,
+            analyze_document_with_lens,
+            test_documentlens_integration
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

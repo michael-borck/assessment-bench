@@ -13,7 +13,7 @@ pub use project::{create_project, get_projects, get_project, delete_project};
 pub use provider::{add_provider, get_providers, update_provider, delete_provider};
 pub use document::{import_documents, get_submissions};
 pub use grading::{start_grading, get_grading_status, get_results};
-pub use analysis::{get_aggregated_results, export_results};
+pub use analysis::{get_aggregated_results, export_results, analyze_document_with_lens, test_documentlens_integration};
 pub use simple_project::{
     create_project_simple, list_projects_simple, delete_project_simple,
     add_provider_simple, list_providers_simple, test_llm_provider, 
