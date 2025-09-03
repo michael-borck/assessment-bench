@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, Activity, Target, Users, Clock, CheckCircle, AlertTriangle, FileText, Download, Filter } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, TrendingDown, BarChart3, Activity, Target, CheckCircle, FileText, Download } from 'lucide-react';
 import { exportResults, ExportOptions } from '../utils/exportUtils';
 
 interface GradingResult {
@@ -424,7 +424,7 @@ const ResultsDashboard: React.FC = () => {
                   cy="50%"
                   outerRadius={80}
                   dataKey="value"
-                  label={({ name, value, percentage }) => `${name}: ${value} (${((value / results.length) * 100).toFixed(1)}%)`}
+                  label={({ name, value }) => `${name}: ${value} (${((value / results.length) * 100).toFixed(1)}%)`}
                 >
                   {consistencyData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />

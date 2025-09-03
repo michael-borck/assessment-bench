@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell } from 'recharts';
 import { GitCompare, TrendingUp, Target, Zap, Award, AlertCircle } from 'lucide-react';
 
 interface ProviderComparison {
@@ -14,12 +14,6 @@ interface ProviderComparison {
   gradeDistribution: { [key: string]: number };
 }
 
-interface ComparisonMetric {
-  metric: string;
-  openai: number;
-  anthropic: number;
-  ollama: number;
-}
 
 const ComparisonDashboard: React.FC = () => {
   const [selectedProviders, setSelectedProviders] = useState<string[]>(['OpenAI', 'Anthropic']);
@@ -237,7 +231,7 @@ const ComparisonDashboard: React.FC = () => {
               />
               <Tooltip formatter={(value, name) => [`${value}%`, name]} />
               <Scatter name="Providers" dataKey="reliability" fill="#3B82F6">
-                {performanceData.map((entry, index) => (
+                {performanceData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Scatter>

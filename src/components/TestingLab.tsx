@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { TestTube, Play, BarChart3, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { TestTube, Play, BarChart3, AlertCircle, CheckCircle, Loader, Activity } from 'lucide-react';
 import { useProjectStore } from '../stores/projectStore';
 
 interface TestLLMResponse {
@@ -44,7 +44,7 @@ interface ApiResponse<T> {
 
 const TestingLab: React.FC = () => {
   const { providers, fetchProviders } = useProjectStore();
-  const [activeTest, setActiveTest] = useState<'provider' | 'grading' | 'multiple'>('provider');
+  const [activeTest, setActiveTest] = useState<'provider' | 'grading' | 'multiple' | 'documentlens'>('provider');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -96,6 +96,17 @@ const TestingLab: React.FC = () => {
     num_runs: 3
   });
   const [multipleResult, setMultipleResult] = useState<MultipleRunsResponse | null>(null);
+  
+  // DocumentLens test state
+  const [documentLensText, setDocumentLensText] = useState(`The development of artificial intelligence has revolutionized numerous aspects of modern society. This technological advancement has profound implications for education, healthcare, and business sectors. Machine learning algorithms, a subset of AI, enable computers to learn and adapt without explicit programming.
+
+In educational contexts, AI-powered systems can personalize learning experiences for individual students. These systems analyze student performance data to identify learning gaps and suggest targeted interventions. Furthermore, automated grading systems can provide immediate feedback on assignments, allowing educators to focus on higher-level instructional activities.
+
+However, the widespread adoption of AI also raises important ethical considerations. Issues of privacy, algorithmic bias, and job displacement require careful examination. As society continues to integrate AI technologies, establishing robust ethical frameworks becomes increasingly critical.
+
+In conclusion, while artificial intelligence offers tremendous potential for societal advancement, thoughtful implementation and ongoing evaluation are essential to maximize benefits while mitigating risks.`);
+  const [documentLensType, setDocumentLensType] = useState('academic');
+  const [documentLensResult, setDocumentLensResult] = useState<any>(null);
 
   useEffect(() => {
     fetchProviders();
@@ -182,6 +193,56 @@ const TestingLab: React.FC = () => {
     }
   };
 
+  const testDocumentLensAnalysis = async () => {
+    if (!documentLensText.trim()) {
+      setError('Please enter text to analyze');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setDocumentLensResult(null);
+
+    try {
+      const response = await invoke<ApiResponse<any>>('analyze_document_with_lens', {
+        request: {
+          text: documentLensText,
+          analysis_type: documentLensType
+        }
+      });
+
+      if (response.success && response.data) {
+        setDocumentLensResult(response.data);
+      } else {
+        setError(response.error || 'DocumentLens analysis failed');
+      }
+    } catch (err) {
+      setError(`Failed to analyze document: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testDocumentLensIntegration = async () => {
+    setLoading(true);
+    setError(null);
+    setDocumentLensResult(null);
+
+    try {
+      const response = await invoke<ApiResponse<string>>('test_documentlens_integration');
+
+      if (response.success && response.data) {
+        setDocumentLensResult(response.data);
+      } else {
+        setError(response.error || 'DocumentLens integration test failed');
+      }
+    } catch (err) {
+      setError(`Failed to test DocumentLens integration: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
@@ -238,6 +299,16 @@ const TestingLab: React.FC = () => {
               }`}
             >
               Multiple Runs
+            </button>
+            <button
+              onClick={() => setActiveTest('documentlens')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTest === 'documentlens'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              DocumentLens
             </button>
           </nav>
         </div>
@@ -700,6 +771,111 @@ const TestingLab: React.FC = () => {
                       </ul>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DocumentLens Test */}
+      {activeTest === 'documentlens' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">DocumentLens Analysis Test</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sample Text to Analyze
+                </label>
+                <textarea
+                  value={documentLensText}
+                  onChange={(e) => setDocumentLensText(e.target.value)}
+                  rows={10}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Enter text to analyze with DocumentLens..."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Analysis Type
+                </label>
+                <select
+                  value={documentLensType}
+                  onChange={(e) => setDocumentLensType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="academic">Academic Analysis</option>
+                  <option value="comprehensive">Comprehensive Analysis</option>
+                  <option value="writing_quality">Writing Quality Only</option>
+                  <option value="readability">Readability Focus</option>
+                </select>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={testDocumentLensAnalysis}
+                  disabled={loading || !documentLensText.trim()}
+                  className="flex-1 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="w-4 h-4" />
+                      <span>Analyze Text</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={testDocumentLensIntegration}
+                  disabled={loading}
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <TestTube className="w-4 h-4" />
+                  <span>Quick Test</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Results */}
+          {documentLensResult && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analysis Results</h3>
+              
+              <div className="space-y-4">
+                {documentLensResult.analysis && (
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <div className="text-sm text-blue-600 font-medium">Overall Score</div>
+                      <div className="text-2xl font-bold text-blue-900">
+                        {documentLensResult.analysis.overall_score?.toFixed(1) || 'N/A'}/10
+                      </div>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <div className="text-sm text-green-600 font-medium">Processing Time</div>
+                      <div className="text-2xl font-bold text-green-900">
+                        {documentLensResult.processing_time_ms}ms
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Detailed Analysis</h4>
+                  <pre className="text-sm text-gray-600 whitespace-pre-wrap overflow-x-auto max-h-96">
+                    {typeof documentLensResult === 'string' 
+                      ? documentLensResult 
+                      : documentLensResult.analysis?.to_formatted_string?.() || JSON.stringify(documentLensResult, null, 2)
+                    }
+                  </pre>
                 </div>
               </div>
             </div>
