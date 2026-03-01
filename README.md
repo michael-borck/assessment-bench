@@ -1,5 +1,9 @@
 # AssessmentBench
 
+<!-- BADGES:START -->
+[![edtech](https://img.shields.io/badge/-edtech-4caf50?style=flat-square)](https://github.com/topics/edtech) [![ai](https://img.shields.io/badge/-ai-ff6f00?style=flat-square)](https://github.com/topics/ai) [![assessment](https://img.shields.io/badge/-assessment-blue?style=flat-square)](https://github.com/topics/assessment) [![benchmarking](https://img.shields.io/badge/-benchmarking-blue?style=flat-square)](https://github.com/topics/benchmarking) [![grading](https://img.shields.io/badge/-grading-blue?style=flat-square)](https://github.com/topics/grading) [![machine-learning](https://img.shields.io/badge/-machine--learning-ff6f00?style=flat-square)](https://github.com/topics/machine-learning) [![react](https://img.shields.io/badge/-react-61dafb?style=flat-square)](https://github.com/topics/react) [![rust](https://img.shields.io/badge/-rust-000000?style=flat-square)](https://github.com/topics/rust) [![tauri](https://img.shields.io/badge/-tauri-ffc131?style=flat-square)](https://github.com/topics/tauri) [![typescript](https://img.shields.io/badge/-typescript-3178c6?style=flat-square)](https://github.com/topics/typescript)
+<!-- BADGES:END -->
+
 > Research-grade benchmarking tool for AI-powered grading systems
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
