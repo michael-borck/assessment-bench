@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "assessment-bench"
-version = "0.1.0"
+version = "0.2.0"
 description = "Benchmark assessment approaches: pure-LLM marking vs the family's signal-based observations, with repeated runs and agreement statistics."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -35,9 +35,16 @@ llm = [
 analysers = [
     "assessment-lens[analysers]>=0.2.0",
 ]
+# The HTTP face: what the desktop shell (or any UI) talks to.
+serve = [
+    "lens-contract>=0.3.0",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
+    "httpx>=0.27.0",  # fastapi TestClient
 ]
 
 [project.scripts]
@@ -47,6 +54,7 @@ assessment-bench = "assessment_bench.cli:main"
 # the published wheel, which keeps the plain PyPI pins.
 [tool.uv.sources]
 assessment-lens = { path = "../assessment-lens", editable = true }
+lens-contract = { path = "../lens-contract", editable = true }
 
 [project.urls]
 Homepage = "https://github.com/michael-borck/assessment-bench"

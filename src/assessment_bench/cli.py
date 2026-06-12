@@ -36,7 +36,20 @@ def main(argv: list[str] | None = None) -> int:
     init_p = sub.add_parser("init", help="Write a commented example experiment config.")
     init_p.add_argument("path", type=Path, nargs="?", default=Path("experiment.yaml"))
 
+    serve_p = sub.add_parser("serve", help="Run the HTTP API (for the desktop shell / UIs).")
+    serve_p.add_argument("--host", default="127.0.0.1")
+    serve_p.add_argument("--port", type=int, default=8020)
+
     args = parser.parse_args(argv)
+
+    if args.command == "serve":
+        try:
+            import uvicorn
+        except ImportError:
+            console.print("[red]serve needs the [serve] extra:[/red] pip install 'assessment-bench[serve]'")
+            return 1
+        uvicorn.run("assessment_bench.api:app", host=args.host, port=args.port)
+        return 0
 
     try:
         if args.command == "init":
