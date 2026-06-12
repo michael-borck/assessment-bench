@@ -1,0 +1,27 @@
+# assessment-bench experiment config.
+# Paths are relative to this file. One subfolder under `submissions` = one submission.
+name: "My experiment"
+rubric: rubric.yaml          # assessment-lens structured rubric (criteria + pinned signals)
+submissions: submissions/
+max_score: 100
+# Optional ground truth — enables agreement statistics (Pearson/Spearman):
+# human_marks: marks.csv     # CSV with header: submission_id,mark
+arms:
+  # The baseline under test: an LLM reads the submission + rubric and emits a mark.
+  - id: llm-haiku
+    kind: llm
+    repetitions: 3           # repeated runs -> consistency stats (mean/CV/reliability)
+    provider:
+      provider: anthropic    # anthropic | openai | ollama | openrouter
+      model: claude-haiku-4-5
+      temperature: 0.1
+  # Local model via Ollama (any OpenAI-compatible endpoint works via base_url):
+  # - id: llm-local
+  #   kind: llm
+  #   repetitions: 3
+  #   provider:
+  #     provider: ollama
+  #     model: llama3.1
+  # Signal-based observation via assessment-lens (deterministic; runs once):
+  - id: signals
+    kind: signals

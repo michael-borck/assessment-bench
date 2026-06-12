@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "assessment-bench"
+version = "0.1.0"
+description = "Benchmark assessment approaches: pure-LLM marking vs the family's signal-based observations, with repeated runs and agreement statistics."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Michael Borck" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "assessment-lens>=0.2.0",
+    "pydantic>=2.5.0",
+    "pyyaml>=6.0.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+# The pure-LLM marking arm. anthropic for Anthropic; openai also covers
+# Ollama / OpenRouter / any OpenAI-compatible endpoint via base_url.
+llm = [
+    "anthropic>=0.40.0",
+    "openai>=1.12.0",
+]
+# Pull the analyser stack into the same env so the signals arm runs for real
+# (assessment-lens shells out to the bundle-analyser CLI).
+analysers = [
+    "assessment-lens[analysers]>=0.2.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+assessment-bench = "assessment_bench.cli:main"
+
+# Local dev: resolve family members from sibling checkouts. uv strips this from
+# the published wheel, which keeps the plain PyPI pins.
+[tool.uv.sources]
+assessment-lens = { path = "../assessment-lens", editable = true }
+
+[project.urls]
+Homepage = "https://github.com/michael-borck/assessment-bench"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/assessment_bench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
