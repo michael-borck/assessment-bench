@@ -108,22 +108,35 @@ def run_experiment(config: ExperimentConfig, *, progress=None) -> ExperimentResu
         submissions=[s.name for s in submissions],
     )
 
+    # Signals are deterministic: one assessment-lens pass per cohort, shared by
+    # every signals and hybrid arm in the experiment.
+    cohort_readings = None
+
+    def readings_for(submission_id: str):
+        nonlocal cohort_readings
+        if cohort_readings is None:
+            say(f"signals: assessment-lens over {len(submissions)} submissions")
+            cohort_readings = arms.run_signals_arm(config.rubric, config.submissions)
+        return [r for r in cohort_readings if r.submission_id == submission_id]
+
     for arm in config.arms:
         if arm.kind is ArmKind.SIGNALS:
-            say(f"arm {arm.id}: assessment-lens over {len(submissions)} submissions")
-            readings = arms.run_signals_arm(arm, config.rubric, config.submissions)
+            say(f"arm {arm.id}: deterministic observations")
             for folder in submissions:
                 result.outcomes.append(
                     ArmOutcome(
                         submission_id=folder.name,
                         arm_id=arm.id,
-                        signals=[r for r in readings if r.submission_id == folder.name],
+                        signals=readings_for(folder.name),
                     )
                 )
         else:
             for folder in submissions:
                 say(f"arm {arm.id}: {folder.name} x{arm.repetitions}")
-                runs = arms.run_llm_arm(arm, folder.name, folder, rubric_text, config.max_score)
+                readings = readings_for(folder.name) if arm.kind is ArmKind.HYBRID else None
+                runs = arms.run_llm_arm(
+                    arm, folder.name, folder, rubric_text, config.max_score, readings
+                )
                 scores = [r.score for r in runs if r.score is not None]
                 result.outcomes.append(
                     ArmOutcome(
@@ -131,6 +144,7 @@ def run_experiment(config: ExperimentConfig, *, progress=None) -> ExperimentResu
                         arm_id=arm.id,
                         runs=runs,
                         stats=stats.run_stats(scores),
+                        signals=readings or [],
                     )
                 )
 

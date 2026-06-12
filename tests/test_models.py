@@ -11,6 +11,11 @@ def test_llm_arm_requires_provider():
         ArmSpec(id="bad", kind=ArmKind.LLM)
 
 
+def test_hybrid_arm_requires_provider():
+    with pytest.raises((ValidationError, ValueError)):
+        ArmSpec(id="bad", kind=ArmKind.HYBRID)
+
+
 def test_signals_arm_needs_no_provider():
     arm = ArmSpec(id="signals", kind=ArmKind.SIGNALS)
     assert arm.repetitions == 1

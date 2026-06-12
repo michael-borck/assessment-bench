@@ -20,8 +20,9 @@ consistency statistics, and agreement against human marks.
 
 ```
 experiment.yaml (rubric + cohort + arms)
-  ├─ llm arm(s)    : submission + rubric → provider → score   × repetitions
-  ├─ signals arm   : assessment-lens → evidence values        (deterministic, once)
+  ├─ llm arm(s)    : submission + rubric → provider → score             × repetitions
+  ├─ hybrid arm(s) : submission + rubric + signals → provider → score   × repetitions
+  ├─ signals arm   : assessment-lens → evidence values                  (deterministic, once)
   └─ human marks   : optional ground-truth CSV
         ↓
 result.json + runs.csv + signals.csv + agreement.csv
@@ -75,8 +76,11 @@ three arms in one config.
   (not the presence-based coverage)
 - ✅ Consistency stats (ported from the original Rust prototype) + Pearson/Spearman
   agreement vs human marks
-- 📋 Hybrid arm (LLM marking with analyser signals in context) — next
-- 📋 HTTP service + desktop shell for non-technical researchers — planned
+- ✅ Hybrid arm — LLM marking with the deterministic signals in context (one
+  assessment-lens pass per cohort, shared across signals/hybrid arms)
+- ✅ HTTP API (`assessment-bench serve`, the `[serve]` extra) — health/manifest
+  contract routes plus background experiment runs for UIs
+- 📋 Desktop shell for non-technical researchers — planned
 
 ## Development
 

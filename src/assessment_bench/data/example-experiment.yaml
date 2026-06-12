@@ -25,3 +25,12 @@ arms:
   # Signal-based observation via assessment-lens (deterministic; runs once):
   - id: signals
     kind: signals
+  # Hybrid: LLM marking with the deterministic signals rendered into the prompt.
+  # The bench's central contrast is llm vs hybrid vs signals.
+  - id: hybrid-haiku
+    kind: hybrid
+    repetitions: 3
+    provider:
+      provider: anthropic
+      model: claude-haiku-4-5
+      temperature: 0.1

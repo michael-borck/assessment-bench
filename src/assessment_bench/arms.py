@@ -9,10 +9,15 @@ Signals arm — assessment-lens observations. Deterministic, so it runs once per
 cohort regardless of repetitions; the bench consumes raw evidence values (not
 the presence-based coverage column) and correlates each numeric signal with the
 human marks.
+
+Hybrid arm — the LLM arm with the submission's deterministic signal readings
+rendered into the marking prompt. The bench's central research question lives
+in the contrast between these three.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -67,9 +72,26 @@ def extract_score(response: str, max_score: float) -> tuple[float | None, float]
     return raw, max_score
 
 
-def grade_prompt(rubric_text: str, submission_text: str, max_score: float) -> str:
+def render_signals(readings: list[SignalReading]) -> str:
+    """Flat evidence lines for the hybrid prompt, grouped under their criterion."""
+    return "\n".join(
+        f"- [{r.criterion_id}] {r.signal} = {json.dumps(r.value, default=str)}"
+        for r in readings
+    )
+
+
+def grade_prompt(
+    rubric_text: str, submission_text: str, max_score: float, signals_text: str = ""
+) -> str:
+    signals_block = (
+        "DETERMINISTIC ANALYSER SIGNALS (objective measurements of this submission; "
+        f"weigh them as evidence):\n{signals_text}\n\n"
+        if signals_text
+        else ""
+    )
     return (
         f"RUBRIC:\n{rubric_text}\n\n"
+        f"{signals_block}"
         f"SUBMISSION:\n{submission_text}\n\n"
         f"Grade the submission against the rubric out of {max_score:g}. "
         f"Give 2-3 sentences of rationale, then the final 'SCORE: x/{max_score:g}' line."
@@ -82,11 +104,13 @@ def run_llm_arm(
     submission_folder: Path,
     rubric_text: str,
     max_score: float,
+    readings: list[SignalReading] | None = None,
 ) -> list[GradeRun]:
-    """All repetitions of one LLM arm for one submission. Failures are recorded, not raised."""
+    """All repetitions of one LLM (or hybrid, when ``readings`` given) arm for one
+    submission. Failures are recorded on the run, not raised."""
     assert arm.provider is not None  # validated by ArmSpec
     text = read_submission_text(submission_folder)
-    prompt = grade_prompt(rubric_text, text, max_score)
+    prompt = grade_prompt(rubric_text, text, max_score, render_signals(readings or []))
     runs: list[GradeRun] = []
     for i in range(arm.repetitions):
         run = GradeRun(submission_id=submission_id, arm_id=arm.id, run_index=i, max_score=max_score)
@@ -103,7 +127,7 @@ def run_llm_arm(
     return runs
 
 
-def run_signals_arm(arm: ArmSpec, rubric_path: Path, submissions_dir: Path) -> list[SignalReading]:
+def run_signals_arm(rubric_path: Path, submissions_dir: Path) -> list[SignalReading]:
     """One assessment-lens pass over the whole cohort -> flat evidence readings."""
     rubric = load_rubric(rubric_path)
     result = assess(rubric, submissions_dir)

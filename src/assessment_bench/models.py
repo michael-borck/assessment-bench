@@ -37,6 +37,7 @@ class ProviderSpec(BaseModel):
 class ArmKind(str, Enum):
     LLM = "llm"          # pure-LLM marking: submission + rubric -> score
     SIGNALS = "signals"  # assessment-lens observations: deterministic evidence values
+    HYBRID = "hybrid"    # LLM marking with the deterministic signals in context
 
 
 class ArmSpec(BaseModel):
@@ -45,11 +46,11 @@ class ArmSpec(BaseModel):
     id: str
     kind: ArmKind
     repetitions: int = Field(default=1, ge=1, le=50)
-    provider: ProviderSpec | None = None  # required for kind=llm
+    provider: ProviderSpec | None = None  # required for kind=llm / kind=hybrid
 
     def model_post_init(self, __context: object) -> None:
-        if self.kind is ArmKind.LLM and self.provider is None:
-            raise ValueError(f"arm '{self.id}': kind=llm requires a provider")
+        if self.kind in (ArmKind.LLM, ArmKind.HYBRID) and self.provider is None:
+            raise ValueError(f"arm '{self.id}': kind={self.kind.value} requires a provider")
 
 
 class ExperimentConfig(BaseModel):
