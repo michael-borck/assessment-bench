@@ -67,7 +67,7 @@ three arms in one config.
 
 ## Status
 
-**v0.1 scaffold.** Working today:
+**v0.3.0** (on PyPI). Working today:
 
 - ✅ Experiment config (YAML) → cohort discovery → arms → structured results
 - ✅ LLM arm: multi-provider (anthropic / openai / ollama / openrouter), repeated
