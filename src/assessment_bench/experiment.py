@@ -19,9 +19,14 @@ from .models import (
     Agreement,
     ArmKind,
     ArmOutcome,
+    CohortDistinctiveness,
     ExperimentConfig,
     ExperimentResult,
 )
+
+# Preference order when distilling distinctiveness to one comparable scalar per
+# submission: combined carries both modalities, then text, then signal-only.
+_DISTINCTIVENESS_SPACE_ORDER = ("combined", "text", "signal")
 
 
 def load_config(path: Path) -> ExperimentConfig:
@@ -40,7 +45,11 @@ def discover_submissions(submissions_dir: Path) -> list[Path]:
     """One subfolder = one submission, mirroring assessment-lens's discovery."""
     if not submissions_dir.is_dir():
         raise AssessmentBenchError(f"submissions folder not found: {submissions_dir}")
-    folders = sorted(p for p in submissions_dir.iterdir() if p.is_dir() and not p.name.startswith("."))
+    folders = sorted(
+        p
+        for p in submissions_dir.iterdir()
+        if p.is_dir() and not p.name.startswith(".")
+    )
     if not folders:
         raise AssessmentBenchError(f"no submission subfolders in {submissions_dir}")
     return folders
@@ -55,17 +64,31 @@ def load_human_marks(path: Path) -> dict[str, float]:
     return marks
 
 
-def _agreements(
-    result: ExperimentResult, marks: dict[str, float]
-) -> list[Agreement]:
-    """Correlate every arm mean and every numeric signal with the human marks."""
+def _distinctiveness_scalar(entry: CohortDistinctiveness) -> float | None:
+    """One comparable scalar (mean cohort similarity) for a submission.
+
+    Picks the richest available space (combined > text > signal). Lower means more
+    distinctive, so a positive correlation with marks reads as 'more typical
+    submissions scored higher' — a prompt for the researcher, never a verdict.
+    """
+    for name in _DISTINCTIVENESS_SPACE_ORDER:
+        space = entry.distinctiveness.space(name)
+        if space is not None and space.mean_similarity is not None:
+            return space.mean_similarity
+    return None
+
+
+def _agreements(result: ExperimentResult, marks: dict[str, float]) -> list[Agreement]:
+    """Correlate every arm mean, every numeric signal, and distinctiveness with marks."""
     agreements: list[Agreement] = []
 
     # Arm means (LLM arms): pair each submission's mean score with its mark.
     by_arm: dict[str, dict[str, float]] = {}
     for outcome in result.outcomes:
         if outcome.stats is not None:
-            by_arm.setdefault(outcome.arm_id, {})[outcome.submission_id] = outcome.stats.mean
+            by_arm.setdefault(outcome.arm_id, {})[outcome.submission_id] = (
+                outcome.stats.mean
+            )
     # Numeric signals (signals arm): one measure per dotted signal path.
     by_signal: dict[str, dict[str, float]] = {}
     for outcome in result.outcomes:
@@ -77,8 +100,16 @@ def _agreements(
             else:
                 continue
             by_signal.setdefault(reading.signal, {})[reading.submission_id] = value
+    # Distinctiveness: one measure (mean cohort similarity per submission).
+    by_distinctiveness: dict[str, dict[str, float]] = {}
+    for entry in result.distinctiveness:
+        scalar = _distinctiveness_scalar(entry)
+        if scalar is not None:
+            by_distinctiveness.setdefault("distinctiveness.mean_similarity", {})[
+                entry.submission_id
+            ] = scalar
 
-    for measure, values in {**by_arm, **by_signal}.items():
+    for measure, values in {**by_arm, **by_signal, **by_distinctiveness}.items():
         paired = [(values[s], marks[s]) for s in values if s in marks]
         if len(paired) < 2:
             continue
@@ -108,15 +139,22 @@ def run_experiment(config: ExperimentConfig, *, progress=None) -> ExperimentResu
         submissions=[s.name for s in submissions],
     )
 
-    # Signals are deterministic: one assessment-lens pass per cohort, shared by
-    # every signals and hybrid arm in the experiment.
+    # The deterministic pass is shared: one assessment-lens run per cohort feeds
+    # every signals/hybrid arm AND the cohort distinctiveness. Lazily run on first
+    # need, so a pure-LLM experiment never pays for the analyser stack.
+    cohort_result = None
     cohort_readings = None
 
-    def readings_for(submission_id: str):
-        nonlocal cohort_readings
-        if cohort_readings is None:
+    def cohort():
+        nonlocal cohort_result, cohort_readings
+        if cohort_result is None:
             say(f"signals: assessment-lens over {len(submissions)} submissions")
-            cohort_readings = arms.run_signals_arm(config.rubric, config.submissions)
+            cohort_result = arms.run_cohort_pass(config.rubric, config.submissions)
+            cohort_readings = arms.signal_readings(cohort_result)
+        return cohort_result
+
+    def readings_for(submission_id: str):
+        cohort()
         return [r for r in cohort_readings if r.submission_id == submission_id]
 
     for arm in config.arms:
@@ -133,7 +171,9 @@ def run_experiment(config: ExperimentConfig, *, progress=None) -> ExperimentResu
         else:
             for folder in submissions:
                 say(f"arm {arm.id}: {folder.name} x{arm.repetitions}")
-                readings = readings_for(folder.name) if arm.kind is ArmKind.HYBRID else None
+                readings = (
+                    readings_for(folder.name) if arm.kind is ArmKind.HYBRID else None
+                )
                 runs = arms.run_llm_arm(
                     arm, folder.name, folder, rubric_text, config.max_score, readings
                 )
@@ -147,6 +187,17 @@ def run_experiment(config: ExperimentConfig, *, progress=None) -> ExperimentResu
                         signals=readings or [],
                     )
                 )
+
+    # Surface cohort distinctiveness if the deterministic pass ran (signals/hybrid
+    # arm present) and assessment-lens was able to compute it (embeddings/signals).
+    if cohort_result is not None:
+        result.distinctiveness = [
+            CohortDistinctiveness(
+                submission_id=sub.submission_id, distinctiveness=sub.distinctiveness
+            )
+            for sub in cohort_result.submissions
+            if sub.distinctiveness is not None
+        ]
 
     if config.human_marks is not None:
         marks = load_human_marks(config.human_marks)

@@ -25,7 +25,14 @@ def write_results(result: ExperimentResult, out_dir: Path) -> list[Path]:
         for outcome in result.outcomes:
             for run in outcome.runs:
                 writer.writerow(
-                    [run.submission_id, run.arm_id, run.run_index, run.score, run.max_score, run.error]
+                    [
+                        run.submission_id,
+                        run.arm_id,
+                        run.run_index,
+                        run.score,
+                        run.max_score,
+                        run.error,
+                    ]
                 )
     written.append(runs_path)
 
@@ -45,6 +52,38 @@ def write_results(result: ExperimentResult, out_dir: Path) -> list[Path]:
                     ]
                 )
     written.append(signals_path)
+
+    if result.distinctiveness:
+        dist_path = out_dir / "distinctiveness.csv"
+        with open(dist_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                [
+                    "submission",
+                    "space",
+                    "nearest",
+                    "nearest_similarity",
+                    "mean_similarity",
+                    "stands_apart",
+                    "notably_similar",
+                    "note",
+                ]
+            )
+            for entry in result.distinctiveness:
+                for space in entry.distinctiveness.spaces:
+                    writer.writerow(
+                        [
+                            entry.submission_id,
+                            space.space,
+                            space.nearest_submission_id,
+                            space.nearest_similarity,
+                            space.mean_similarity,
+                            space.stands_apart,
+                            space.notably_similar,
+                            entry.distinctiveness.note,
+                        ]
+                    )
+        written.append(dist_path)
 
     if result.agreements:
         agreement_path = out_dir / "agreement.csv"

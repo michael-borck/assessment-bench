@@ -13,6 +13,7 @@ from .models import (
     ArmKind,
     ArmOutcome,
     ArmSpec,
+    CohortDistinctiveness,
     ExperimentConfig,
     ExperimentResult,
     GradeRun,
@@ -23,7 +24,7 @@ from .models import (
 )
 from .report import write_results
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "Agreement",
@@ -31,6 +32,7 @@ __all__ = [
     "ArmOutcome",
     "ArmSpec",
     "AssessmentBenchError",
+    "CohortDistinctiveness",
     "ExperimentConfig",
     "ExperimentResult",
     "GradeRun",

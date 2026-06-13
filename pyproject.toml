@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "assessment-bench"
-version = "0.3.0"
+version = "0.4.0"
 description = "Benchmark assessment approaches: pure-LLM marking vs the family's signal-based observations, with repeated runs and agreement statistics."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -31,9 +31,12 @@ llm = [
     "openai>=1.12.0",
 ]
 # Pull the analyser stack into the same env so the signals arm runs for real
-# (assessment-lens shells out to the bundle-analyser CLI).
+# (assessment-lens shells out to the bundle-analyser CLI). The distinctiveness
+# extra adds lens-embed's numpy core so cohort distinctiveness computes too — it
+# still only surfaces when the analysers themselves were installed with their
+# own [embeddings] extras (that's what produces the vectors).
 analysers = [
-    "assessment-lens[analysers]>=0.2.0",
+    "assessment-lens[analysers,distinctiveness]>=0.2.0",
 ]
 # The HTTP face: what the desktop shell (or any UI) talks to.
 serve = [

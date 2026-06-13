@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 
 from assessment_lens.assess import assess
+from assessment_lens.models import AssessmentResult
 from assessment_lens.rubric import load_rubric
 
 from . import providers
@@ -57,7 +58,9 @@ def read_submission_text(folder: Path) -> str:
 
                 parts.append(f"--- {path.name} ---\n{extract_text(path)}")
             except ImportError:
-                parts.append(f"--- {path.name} --- (skipped: install the [analysers] extra to extract {suffix})")
+                parts.append(
+                    f"--- {path.name} --- (skipped: install the [analysers] extra to extract {suffix})"
+                )
     return "\n\n".join(parts)
 
 
@@ -113,9 +116,13 @@ def run_llm_arm(
     prompt = grade_prompt(rubric_text, text, max_score, render_signals(readings or []))
     runs: list[GradeRun] = []
     for i in range(arm.repetitions):
-        run = GradeRun(submission_id=submission_id, arm_id=arm.id, run_index=i, max_score=max_score)
+        run = GradeRun(
+            submission_id=submission_id, arm_id=arm.id, run_index=i, max_score=max_score
+        )
         try:
-            response = providers.complete(prompt, system=_GRADE_SYSTEM, spec=arm.provider)
+            response = providers.complete(
+                prompt, system=_GRADE_SYSTEM, spec=arm.provider
+            )
             run.raw_response = response
             run.score, _ = extract_score(response, max_score)
             run.rationale = _SCORE_RE.sub("", response).strip()
@@ -127,10 +134,20 @@ def run_llm_arm(
     return runs
 
 
-def run_signals_arm(rubric_path: Path, submissions_dir: Path) -> list[SignalReading]:
-    """One assessment-lens pass over the whole cohort -> flat evidence readings."""
+def run_cohort_pass(rubric_path: Path, submissions_dir: Path) -> AssessmentResult:
+    """The one deterministic assessment-lens pass over the whole cohort.
+
+    Returns the full ``AssessmentResult`` (not just flat readings) so the bench
+    can also surface the cohort-relative distinctiveness assessment-lens computes
+    in the same pass — both the signals arm and distinctiveness ride on this one
+    (expensive) shell-out to the analyser stack.
+    """
     rubric = load_rubric(rubric_path)
-    result = assess(rubric, submissions_dir)
+    return assess(rubric, submissions_dir)
+
+
+def signal_readings(result: AssessmentResult) -> list[SignalReading]:
+    """Flatten an AssessmentResult's per-criterion evidence into flat readings."""
     readings: list[SignalReading] = []
     for submission in result.submissions:
         for observation in submission.observations:

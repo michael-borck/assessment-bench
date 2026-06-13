@@ -13,6 +13,7 @@ from __future__ import annotations
 from enum import Enum
 from pathlib import Path
 
+from assessment_lens.models import Distinctiveness
 from pydantic import BaseModel, Field
 
 
@@ -35,9 +36,9 @@ class ProviderSpec(BaseModel):
 
 
 class ArmKind(str, Enum):
-    LLM = "llm"          # pure-LLM marking: submission + rubric -> score
+    LLM = "llm"  # pure-LLM marking: submission + rubric -> score
     SIGNALS = "signals"  # assessment-lens observations: deterministic evidence values
-    HYBRID = "hybrid"    # LLM marking with the deterministic signals in context
+    HYBRID = "hybrid"  # LLM marking with the deterministic signals in context
 
 
 class ArmSpec(BaseModel):
@@ -50,7 +51,9 @@ class ArmSpec(BaseModel):
 
     def model_post_init(self, __context: object) -> None:
         if self.kind in (ArmKind.LLM, ArmKind.HYBRID) and self.provider is None:
-            raise ValueError(f"arm '{self.id}': kind={self.kind.value} requires a provider")
+            raise ValueError(
+                f"arm '{self.id}': kind={self.kind.value} requires a provider"
+            )
 
 
 class ExperimentConfig(BaseModel):
@@ -118,10 +121,29 @@ class ArmOutcome(BaseModel):
     signals: list[SignalReading] = Field(default_factory=list)
 
 
+class CohortDistinctiveness(BaseModel):
+    """One submission's cohort-relative distinctiveness, surfaced from the bench's
+    deterministic assessment-lens pass.
+
+    Reuses assessment-lens's neutral, **direction-agnostic** model unchanged: it is
+    never a collusion verdict and never a quality judgement — standing apart can
+    mean an out-of-the-box answer *or* a thin one. The bench carries it so a
+    researcher can ask whether the arms agree *less* (or diverge from the human
+    marks) on the cohort's distinctive submissions. Present only when embeddings/
+    signals were available (the analyser ``[embeddings]`` extras + lens-embed);
+    otherwise the list is simply empty.
+    """
+
+    submission_id: str
+    distinctiveness: Distinctiveness
+
+
 class Agreement(BaseModel):
     """Correlation between one measure and the human marks."""
 
-    measure: str = Field(description="An arm id (mean score) or a dotted signal path.")
+    measure: str = Field(
+        description="An arm id (mean score), a dotted signal path, or a distinctiveness measure."
+    )
     n: int
     pearson: float | None = None
     spearman: float | None = None
@@ -134,4 +156,7 @@ class ExperimentResult(BaseModel):
     max_score: float
     submissions: list[str] = Field(default_factory=list)
     outcomes: list[ArmOutcome] = Field(default_factory=list)
+    # Per-submission cohort distinctiveness (once per cohort, arm-independent).
+    # Empty unless the deterministic pass ran and embeddings/signals were present.
+    distinctiveness: list[CohortDistinctiveness] = Field(default_factory=list)
     agreements: list[Agreement] = Field(default_factory=list)

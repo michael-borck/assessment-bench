@@ -6,10 +6,10 @@ import pytest
 
 fastapi = pytest.importorskip("fastapi", reason="needs the [serve] extra")
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402  (guarded by importorskip above)
 
-from assessment_bench import api
-from assessment_bench.models import ExperimentResult
+from assessment_bench import api  # noqa: E402
+from assessment_bench.models import ExperimentResult  # noqa: E402
 
 CONFIG = {
     "name": "api-test",
@@ -45,7 +45,9 @@ def test_contract_routes(client):
 def test_run_lifecycle(client, monkeypatch):
     def fake_run(config, *, progress=None):
         progress("arm signals: working")
-        return ExperimentResult(name=config.name, max_score=config.max_score, submissions=["a"])
+        return ExperimentResult(
+            name=config.name, max_score=config.max_score, submissions=["a"]
+        )
 
     monkeypatch.setattr(api, "run_experiment", fake_run)
 
@@ -72,7 +74,9 @@ def test_failed_run_reports_error(client, monkeypatch):
     monkeypatch.setattr(api, "run_experiment", boom)
     run_id = client.post("/experiments", json={"config": CONFIG}).json()["id"]
     assert _wait_done(client, run_id) == "failed"
-    assert "cohort folder missing" in client.get(f"/experiments/{run_id}").json()["error"]
+    assert (
+        "cohort folder missing" in client.get(f"/experiments/{run_id}").json()["error"]
+    )
     assert client.get(f"/experiments/{run_id}/result").status_code == 500
 
 
