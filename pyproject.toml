@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "assessment-lens>=0.2.0",
+    "assessment-lens>=0.3.0",
     "pydantic>=2.5.0",
     "pyyaml>=6.0.0",
     "rich>=13.7.0",
@@ -36,7 +36,7 @@ llm = [
 # still only surfaces when the analysers themselves were installed with their
 # own [embeddings] extras (that's what produces the vectors).
 analysers = [
-    "assessment-lens[analysers,distinctiveness]>=0.2.0",
+    "assessment-lens[analysers,distinctiveness]>=0.3.0",
 ]
 # The HTTP face: what the desktop shell (or any UI) talks to.
 serve = [
