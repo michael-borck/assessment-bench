@@ -1,9 +1,10 @@
 """Multi-provider LLM completion for the pure-LLM marking arm.
 
 Provider registry adapted from image-analyser's caption providers: Anthropic via
-its own SDK; OpenAI, OpenRouter, and Ollama through the openai SDK (the latter
-two are OpenAI-compatible endpoints reached via base_url). Key resolution
-follows the family pattern — env var first, then a minimal .env fallback.
+its own SDK; OpenAI, OpenRouter, Ollama, xAI Grok and Google Gemini through the
+openai SDK (all but OpenAI are OpenAI-compatible endpoints reached via base_url;
+Gemini via its /v1beta/openai compat shim). Key resolution follows the family
+pattern — env var first, then a minimal .env fallback.
 
 Everything here is opt-in and degradable: callers catch ``LLMUnavailable`` and
 the experiment records the failure instead of dying mid-cohort.
@@ -22,11 +23,15 @@ PROVIDER_KEYS = {
     ProviderName.OPENAI: "OPENAI_API_KEY",
     ProviderName.OPENROUTER: "OPENROUTER_API_KEY",
     ProviderName.OLLAMA: None,  # local; no key
+    ProviderName.GROK: "XAI_API_KEY",
+    ProviderName.GEMINI: "GEMINI_API_KEY",
 }
 
 DEFAULT_BASE_URLS = {
     ProviderName.OPENROUTER: "https://openrouter.ai/api/v1",
     ProviderName.OLLAMA: "http://localhost:11434/v1",
+    ProviderName.GROK: "https://api.x.ai/v1",
+    ProviderName.GEMINI: "https://generativelanguage.googleapis.com/v1beta/openai",
 }
 
 

@@ -23,6 +23,8 @@ class ProviderName(str, Enum):
     OPENAI = "openai"
     OLLAMA = "ollama"
     OPENROUTER = "openrouter"
+    GROK = "grok"  # xAI; OpenAI-compatible
+    GEMINI = "gemini"  # Google; via its OpenAI-compat endpoint
 
 
 class ProviderSpec(BaseModel):
