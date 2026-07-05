@@ -16,7 +16,8 @@ from assessment_lens.models import (
 )
 
 from assessment_bench import arms
-from assessment_bench.experiment import run_experiment
+from assessment_bench.exceptions import AssessmentBenchError
+from assessment_bench.experiment import load_config, load_human_marks, run_experiment
 from assessment_bench.models import ExperimentConfig
 
 
@@ -195,6 +196,45 @@ def test_pure_llm_experiment_skips_cohort_pass_and_distinctiveness(cohort, monke
     result = run_experiment(config)
     assert calls == []
     assert result.distinctiveness == []
+
+
+def test_load_config_failures_raise_bench_errors(tmp_path):
+    # All three failure modes surface as AssessmentBenchError (the CLI's catch),
+    # never as raw FileNotFoundError / YAMLError / ValidationError tracebacks.
+    with pytest.raises(AssessmentBenchError, match="cannot read experiment config"):
+        load_config(tmp_path / "missing.yaml")
+
+    bad_yaml = tmp_path / "bad.yaml"
+    bad_yaml.write_text("name: [unclosed")
+    with pytest.raises(AssessmentBenchError, match="invalid YAML"):
+        load_config(bad_yaml)
+
+    bad_schema = tmp_path / "schema.yaml"
+    bad_schema.write_text("name: t\n")
+    with pytest.raises(AssessmentBenchError, match="invalid experiment config"):
+        load_config(bad_schema)
+
+
+def test_load_human_marks_failures_raise_bench_errors(tmp_path):
+    bad_header = tmp_path / "marks.csv"
+    bad_header.write_text("student,grade\na,1\n")
+    with pytest.raises(AssessmentBenchError, match="header must include"):
+        load_human_marks(bad_header)
+
+    bad_row = tmp_path / "marks2.csv"
+    bad_row.write_text("submission_id,mark\nalice,not-a-number\n")
+    with pytest.raises(AssessmentBenchError, match="line 2"):
+        load_human_marks(bad_row)
+
+    with pytest.raises(AssessmentBenchError, match="cannot read human marks"):
+        load_human_marks(tmp_path / "missing.csv")
+
+
+def test_missing_rubric_raises_bench_error(cohort, stubbed_engine):
+    config = _config(cohort)
+    config.rubric = cohort / "nope.yaml"
+    with pytest.raises(AssessmentBenchError, match="cannot read rubric"):
+        run_experiment(config)
 
 
 def test_report_writes_distinctiveness_csv(cohort, stubbed_engine, tmp_path):

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "assessment-bench"
-version = "0.4.0"
+version = "0.5.0"
 description = "Benchmark assessment approaches: pure-LLM marking vs the family's signal-based observations, with repeated runs and agreement statistics."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -61,6 +61,8 @@ lens-contract = { path = "../lens-contract", editable = true }
 
 [project.urls]
 Homepage = "https://github.com/michael-borck/assessment-bench"
+Repository = "https://github.com/michael-borck/assessment-bench"
+Issues = "https://github.com/michael-borck/assessment-bench/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/assessment_bench"]

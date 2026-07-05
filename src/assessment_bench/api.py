@@ -78,7 +78,8 @@ class StartExperiment(BaseModel):
 
 
 def _execute(run: _Run, out: Path | None) -> None:
-    run.status = "running"
+    with run.lock:
+        run.status = "running"
     try:
         result = run_experiment(run.config, progress=run.say)
         if out is not None:

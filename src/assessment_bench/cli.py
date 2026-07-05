@@ -69,7 +69,11 @@ def main(argv: list[str] | None = None) -> int:
         console.print(f"✓ {len(result.submissions)} submissions → " + ", ".join(str(p) for p in written))
         if result.agreements:
             console.print("[bold]Agreement with human marks:[/bold]")
-            for a in sorted(result.agreements, key=lambda a: -(a.pearson or -2)):
+            # Undefined correlations sort last; r=0.0 is a real result, not undefined.
+            for a in sorted(
+                result.agreements,
+                key=lambda a: -a.pearson if a.pearson is not None else 2.0,
+            ):
                 console.print(f"  {a.measure}: r={a.pearson:.3f} rho={a.spearman:.3f} (n={a.n})"
                               if a.pearson is not None and a.spearman is not None
                               else f"  {a.measure}: undefined (n={a.n})")

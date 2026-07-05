@@ -42,6 +42,21 @@ def test_experiment_config_parses():
     assert config.arms[0].provider.base_url is None
 
 
+def test_duplicate_arm_ids_rejected():
+    with pytest.raises((ValidationError, ValueError), match="duplicate arm ids"):
+        ExperimentConfig.model_validate(
+            {
+                "name": "t",
+                "rubric": "r.yaml",
+                "submissions": "s/",
+                "arms": [
+                    {"id": "signals", "kind": "signals"},
+                    {"id": "signals", "kind": "signals"},
+                ],
+            }
+        )
+
+
 def test_experiment_config_requires_an_arm():
     with pytest.raises(ValidationError):
         ExperimentConfig.model_validate(

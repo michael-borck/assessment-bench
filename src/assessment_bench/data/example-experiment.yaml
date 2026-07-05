@@ -12,7 +12,7 @@ arms:
     kind: llm
     repetitions: 3           # repeated runs -> consistency stats (mean/CV/reliability)
     provider:
-      provider: anthropic    # anthropic | openai | ollama | openrouter
+      provider: anthropic    # anthropic | openai | ollama | openrouter | grok | gemini
       model: claude-haiku-4-5
       temperature: 0.1
   # Local model via Ollama (any OpenAI-compatible endpoint works via base_url):

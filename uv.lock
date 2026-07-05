@@ -54,7 +54,7 @@ wheels = [
 
 [[package]]
 name = "assessment-bench"
-version = "0.4.0"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "assessment-lens" },
@@ -102,7 +102,7 @@ provides-extras = ["llm", "analysers", "serve", "dev"]
 
 [[package]]
 name = "assessment-lens"
-version = "0.2.0"
+version = "0.5.0"
 source = { editable = "../assessment-lens" }
 dependencies = [
     { name = "pydantic" },
@@ -123,19 +123,27 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'llm'", specifier = ">=0.40.0" },
     { name = "bundle-analyser", marker = "extra == 'analysers'", editable = "../bundle-analyser" },
     { name = "document-analyser", marker = "extra == 'documents'", editable = "../document-analyser" },
+    { name = "fastapi", marker = "extra == 'dev'", specifier = ">=0.109.0" },
+    { name = "fastapi", marker = "extra == 'serve'", specifier = ">=0.109.0" },
+    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
+    { name = "lens-contract", marker = "extra == 'dev'", editable = "../lens-contract" },
+    { name = "lens-contract", marker = "extra == 'serve'", editable = "../lens-contract" },
     { name = "lens-embed", marker = "extra == 'dev'", editable = "../lens-embed" },
     { name = "lens-embed", marker = "extra == 'distinctiveness'", editable = "../lens-embed" },
+    { name = "openai", marker = "extra == 'llm'", specifier = ">=1.12.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "rich", specifier = ">=13.7.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.0" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'serve'", specifier = ">=0.27.0" },
 ]
-provides-extras = ["analysers", "llm", "documents", "distinctiveness", "dev"]
+provides-extras = ["analysers", "llm", "documents", "distinctiveness", "serve", "dev"]
 
 [[package]]
 name = "bundle-analyser"
-version = "0.4.0"
+version = "0.5.0"
 source = { editable = "../bundle-analyser" }
 dependencies = [
     { name = "fastapi" },

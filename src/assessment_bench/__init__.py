@@ -24,7 +24,7 @@ from .models import (
 )
 from .report import write_results
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "Agreement",

@@ -74,6 +74,13 @@ class ExperimentConfig(BaseModel):
     )
     arms: list[ArmSpec] = Field(min_length=1)
 
+    def model_post_init(self, __context: object) -> None:
+        # Arm ids key the outcomes and agreement tables; duplicates would merge silently.
+        ids = [arm.id for arm in self.arms]
+        duplicates = sorted({i for i in ids if ids.count(i) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate arm ids: {', '.join(duplicates)}")
+
 
 # --- Result side (output) ----------------------------------------------------
 class GradeRun(BaseModel):

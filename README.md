@@ -41,8 +41,9 @@ uv pip install -e ".[dev]"
 # the signals arm needs the analyser stack (bundle-analyser CLI on PATH):
 uv pip install -e ".[analysers]"
 
-# LLM arms (Anthropic, OpenAI, Ollama, OpenRouter):
-uv pip install -e ".[llm]"      # + export ANTHROPIC_API_KEY / OPENAI_API_KEY / ...
+# LLM arms (Anthropic, OpenAI, Ollama, OpenRouter, Grok, Gemini):
+uv pip install -e ".[llm]"      # + export ANTHROPIC_API_KEY / OPENAI_API_KEY /
+                                #   OPENROUTER_API_KEY / XAI_API_KEY / GEMINI_API_KEY
 ```
 
 ## Quick start
@@ -67,11 +68,11 @@ three arms in one config.
 
 ## Status
 
-**v0.3.0** (on PyPI). Working today:
+**v0.5.0** (unreleased; v0.4.0 on PyPI). Working today:
 
 - ✅ Experiment config (YAML) → cohort discovery → arms → structured results
-- ✅ LLM arm: multi-provider (anthropic / openai / ollama / openrouter), repeated
-  runs, strict `SCORE: x/y` extraction with scaled fallback
+- ✅ LLM arm: multi-provider (anthropic / openai / ollama / openrouter / grok /
+  gemini), repeated runs, strict `SCORE: x/y` extraction with scaled fallback
 - ✅ Signals arm: one `assessment-lens` pass; raw evidence values consumed
   (not the presence-based coverage)
 - ✅ Consistency stats (ported from the original Rust prototype) + Pearson/Spearman

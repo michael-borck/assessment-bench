@@ -12,6 +12,7 @@ import csv
 from pathlib import Path
 
 import yaml
+from pydantic import ValidationError
 
 from . import arms, stats
 from .exceptions import AssessmentBenchError
@@ -31,9 +32,18 @@ _DISTINCTIVENESS_SPACE_ORDER = ("combined", "text", "signal")
 
 def load_config(path: Path) -> ExperimentConfig:
     """Load an experiment YAML; relative paths resolve against the config's folder."""
-    raw = yaml.safe_load(Path(path).read_text())
-    config = ExperimentConfig.model_validate(raw)
-    base = Path(path).resolve().parent
+    path = Path(path)
+    try:
+        raw = yaml.safe_load(path.read_text())
+    except OSError as exc:
+        raise AssessmentBenchError(f"cannot read experiment config: {exc}") from exc
+    except yaml.YAMLError as exc:
+        raise AssessmentBenchError(f"invalid YAML in {path}: {exc}") from exc
+    try:
+        config = ExperimentConfig.model_validate(raw)
+    except ValidationError as exc:
+        raise AssessmentBenchError(f"invalid experiment config {path}: {exc}") from exc
+    base = path.resolve().parent
     config.rubric = (base / config.rubric).resolve()
     config.submissions = (base / config.submissions).resolve()
     if config.human_marks is not None:
@@ -58,9 +68,26 @@ def discover_submissions(submissions_dir: Path) -> list[Path]:
 def load_human_marks(path: Path) -> dict[str, float]:
     """CSV with a header row: submission_id,mark."""
     marks: dict[str, float] = {}
-    with open(path, newline="") as f:
-        for row in csv.DictReader(f):
-            marks[row["submission_id"].strip()] = float(row["mark"])
+    try:
+        with open(path, newline="") as f:
+            reader = csv.DictReader(f)
+            fields = set(reader.fieldnames or [])
+            if not {"submission_id", "mark"} <= fields:
+                raise AssessmentBenchError(
+                    f"{path}: header must include submission_id,mark "
+                    f"(got: {', '.join(sorted(fields)) or 'empty file'})"
+                )
+            for line_no, row in enumerate(reader, start=2):
+                try:
+                    marks[row["submission_id"].strip()] = float(row["mark"])
+                except (AttributeError, TypeError, ValueError) as exc:
+                    raise AssessmentBenchError(
+                        f"{path} line {line_no}: expected 'submission_id,mark' with a "
+                        f"numeric mark (got submission_id={row['submission_id']!r}, "
+                        f"mark={row['mark']!r})"
+                    ) from exc
+    except OSError as exc:
+        raise AssessmentBenchError(f"cannot read human marks: {exc}") from exc
     return marks
 
 
@@ -132,7 +159,10 @@ def run_experiment(config: ExperimentConfig, *, progress=None) -> ExperimentResu
     """
     say = progress or (lambda _msg: None)
     submissions = discover_submissions(config.submissions)
-    rubric_text = config.rubric.read_text()
+    try:
+        rubric_text = config.rubric.read_text()
+    except OSError as exc:
+        raise AssessmentBenchError(f"cannot read rubric: {exc}") from exc
     result = ExperimentResult(
         name=config.name,
         max_score=config.max_score,
