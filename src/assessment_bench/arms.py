@@ -123,7 +123,7 @@ def run_llm_arm(
             run.rationale = _SCORE_RE.sub("", response).strip()
             if run.score is None:
                 run.error = "no SCORE line found in response"
-        except Exception as exc:  # one bad call must not kill a cohort run
+        except Exception as exc:  # noqa: BLE001 — one bad call must not kill a cohort run
             run.error = str(exc)
         runs.append(run)
     return runs

@@ -51,7 +51,7 @@ class ArmSpec(BaseModel):
     repetitions: int = Field(default=1, ge=1, le=50)
     provider: ProviderSpec | None = None  # required for kind=llm / kind=hybrid
 
-    def model_post_init(self, __context: object) -> None:
+    def model_post_init(self, context: object, /) -> None:
         if self.kind in (ArmKind.LLM, ArmKind.HYBRID) and self.provider is None:
             raise ValueError(f"arm '{self.id}': kind={self.kind.value} requires a provider")
 
@@ -72,7 +72,7 @@ class ExperimentConfig(BaseModel):
     )
     arms: list[ArmSpec] = Field(min_length=1)
 
-    def model_post_init(self, __context: object) -> None:
+    def model_post_init(self, context: object, /) -> None:
         # Arm ids key the outcomes and agreement tables; duplicates would merge silently.
         ids = [arm.id for arm in self.arms]
         duplicates = sorted({i for i in ids if ids.count(i) > 1})

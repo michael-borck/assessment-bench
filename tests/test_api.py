@@ -6,10 +6,10 @@ import pytest
 
 fastapi = pytest.importorskip("fastapi", reason="needs the [serve] extra")
 
-from fastapi.testclient import TestClient  # noqa: E402  (guarded by importorskip above)
+from fastapi.testclient import TestClient
 
-from assessment_bench import api  # noqa: E402
-from assessment_bench.models import ExperimentResult  # noqa: E402
+from assessment_bench import api
+from assessment_bench.models import ExperimentResult
 
 CONFIG = {
     "name": "api-test",

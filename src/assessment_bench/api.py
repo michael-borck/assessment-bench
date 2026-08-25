@@ -91,7 +91,7 @@ def _execute(run: _Run, out: Path | None) -> None:
         with run.lock:
             run.result = result
             run.status = "done"
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — fault isolation: record, don't kill the worker
         with run.lock:
             run.error = str(exc)
             run.status = "failed"

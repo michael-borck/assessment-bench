@@ -116,9 +116,7 @@ def _agreements(result: ExperimentResult, marks: dict[str, float]) -> list[Agree
     by_signal: dict[str, dict[str, float]] = {}
     for outcome in result.outcomes:
         for reading in outcome.signals:
-            if isinstance(reading.value, bool):
-                value = float(reading.value)
-            elif isinstance(reading.value, (int, float)):
+            if isinstance(reading.value, (bool, int, float)):
                 value = float(reading.value)
             else:
                 continue

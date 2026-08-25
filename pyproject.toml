@@ -75,3 +75,8 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
+# This checkout lives on an exFAT volume that reports every file as executable;
+# git records 644 and CI checkouts are correct, so EXE002 is always noise here.
+ignore = ["EXE002"]
