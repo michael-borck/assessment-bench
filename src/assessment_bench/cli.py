@@ -1,7 +1,7 @@
 """assessment-bench CLI.
 
-  assessment-bench run experiment.yaml -o out/
-  assessment-bench init my-experiment.yaml
+assessment-bench run experiment.yaml -o out/
+assessment-bench init my-experiment.yaml
 """
 
 from __future__ import annotations
@@ -46,7 +46,9 @@ def main(argv: list[str] | None = None) -> int:
         try:
             import uvicorn
         except ImportError:
-            console.print("[red]serve needs the [serve] extra:[/red] pip install 'assessment-bench[serve]'")
+            console.print(
+                "[red]serve needs the [serve] extra:[/red] pip install 'assessment-bench[serve]'"
+            )
             return 1
         uvicorn.run("assessment_bench.api:app", host=args.host, port=args.port)
         return 0
@@ -66,7 +68,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         result = run_experiment(config, progress=lambda msg: console.print(f"  {msg}"))
         written = write_results(result, args.out)
-        console.print(f"✓ {len(result.submissions)} submissions → " + ", ".join(str(p) for p in written))
+        console.print(
+            f"✓ {len(result.submissions)} submissions → " + ", ".join(str(p) for p in written)
+        )
         if result.agreements:
             console.print("[bold]Agreement with human marks:[/bold]")
             # Undefined correlations sort last; r=0.0 is a real result, not undefined.
@@ -74,9 +78,11 @@ def main(argv: list[str] | None = None) -> int:
                 result.agreements,
                 key=lambda a: -a.pearson if a.pearson is not None else 2.0,
             ):
-                console.print(f"  {a.measure}: r={a.pearson:.3f} rho={a.spearman:.3f} (n={a.n})"
-                              if a.pearson is not None and a.spearman is not None
-                              else f"  {a.measure}: undefined (n={a.n})")
+                console.print(
+                    f"  {a.measure}: r={a.pearson:.3f} rho={a.spearman:.3f} (n={a.n})"
+                    if a.pearson is not None and a.spearman is not None
+                    else f"  {a.measure}: undefined (n={a.n})"
+                )
         return 0
     except AssessmentBenchError as exc:
         console.print(f"[red]error:[/red] {exc}")

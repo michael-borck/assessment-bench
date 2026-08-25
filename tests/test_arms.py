@@ -41,11 +41,7 @@ def test_grade_prompt_hybrid_includes_signals():
     from assessment_bench.arms import render_signals
     from assessment_bench.models import SignalReading
 
-    readings = [
-        SignalReading(
-            submission_id="a", criterion_id="tech", signal="code.lint", value=4
-        )
-    ]
+    readings = [SignalReading(submission_id="a", criterion_id="tech", signal="code.lint", value=4)]
     p = grade_prompt("RUB", "SUB", 100.0, render_signals(readings))
     assert "DETERMINISTIC ANALYSER SIGNALS" in p
     assert "[tech] code.lint = 4" in p

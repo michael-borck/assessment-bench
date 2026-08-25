@@ -42,9 +42,7 @@ def stubbed_engine(monkeypatch):
         prompts.append(prompt)
         # Distinguishable scores: alice's text is longer; hybrids land higher.
         base = 80 if "thoughtful" in prompt else 50
-        return (
-            f"Decent work.\nSCORE: {base + (5 if 'DETERMINISTIC' in prompt else 0)}/100"
-        )
+        return f"Decent work.\nSCORE: {base + (5 if 'DETERMINISTIC' in prompt else 0)}/100"
 
     def fake_cohort(rubric_path, submissions_dir):
         # One evidence value per submission, plus a distinctiveness annotation so
@@ -57,17 +55,11 @@ def stubbed_engine(monkeypatch):
                     observations=[
                         Observation(
                             criterion_id="c1",
-                            evidence=[
-                                Evidence(signal="document.word_count", value=words)
-                            ],
+                            evidence=[Evidence(signal="document.word_count", value=words)],
                         )
                     ],
                     distinctiveness=Distinctiveness(
-                        spaces=[
-                            SpaceDistinctiveness(
-                                space="combined", mean_similarity=mean_sim
-                            )
-                        ],
+                        spaces=[SpaceDistinctiveness(space="combined", mean_similarity=mean_sim)],
                         note="n",
                     ),
                 )
@@ -159,9 +151,7 @@ def test_signal_pass_shared_across_arms(cohort, monkeypatch):
         return AssessmentResult(assignment="t", submissions=[])
 
     monkeypatch.setattr(arms, "run_cohort_pass", counting_cohort)
-    monkeypatch.setattr(
-        arms.providers, "complete", lambda p, *, system, spec: "SCORE: 1/100"
-    )
+    monkeypatch.setattr(arms.providers, "complete", lambda p, *, system, spec: "SCORE: 1/100")
     run_experiment(_config(cohort))
     assert len(calls) == 1  # hybrid + signals arms share one assessment-lens pass
 
@@ -176,9 +166,7 @@ def test_pure_llm_experiment_skips_cohort_pass_and_distinctiveness(cohort, monke
         return AssessmentResult(assignment="t", submissions=[])
 
     monkeypatch.setattr(arms, "run_cohort_pass", counting_cohort)
-    monkeypatch.setattr(
-        arms.providers, "complete", lambda p, *, system, spec: "SCORE: 1/100"
-    )
+    monkeypatch.setattr(arms.providers, "complete", lambda p, *, system, spec: "SCORE: 1/100")
     config = ExperimentConfig.model_validate(
         {
             "name": "t",

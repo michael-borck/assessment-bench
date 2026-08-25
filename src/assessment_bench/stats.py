@@ -18,11 +18,7 @@ def run_stats(scores: list[float]) -> RunStats | None:
     n = len(scores)
     mean = sum(scores) / n
     ordered = sorted(scores)
-    median = (
-        ordered[n // 2]
-        if n % 2
-        else (ordered[n // 2 - 1] + ordered[n // 2]) / 2.0
-    )
+    median = ordered[n // 2] if n % 2 else (ordered[n // 2 - 1] + ordered[n // 2]) / 2.0
     if n > 1:
         variance = sum((s - mean) ** 2 for s in scores) / (n - 1)
         std_dev = variance**0.5

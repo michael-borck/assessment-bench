@@ -78,8 +78,7 @@ def extract_score(response: str, max_score: float) -> tuple[float | None, float]
 def render_signals(readings: list[SignalReading]) -> str:
     """Flat evidence lines for the hybrid prompt, grouped under their criterion."""
     return "\n".join(
-        f"- [{r.criterion_id}] {r.signal} = {json.dumps(r.value, default=str)}"
-        for r in readings
+        f"- [{r.criterion_id}] {r.signal} = {json.dumps(r.value, default=str)}" for r in readings
     )
 
 
@@ -116,13 +115,9 @@ def run_llm_arm(
     prompt = grade_prompt(rubric_text, text, max_score, render_signals(readings or []))
     runs: list[GradeRun] = []
     for i in range(arm.repetitions):
-        run = GradeRun(
-            submission_id=submission_id, arm_id=arm.id, run_index=i, max_score=max_score
-        )
+        run = GradeRun(submission_id=submission_id, arm_id=arm.id, run_index=i, max_score=max_score)
         try:
-            response = providers.complete(
-                prompt, system=_GRADE_SYSTEM, spec=arm.provider
-            )
+            response = providers.complete(prompt, system=_GRADE_SYSTEM, spec=arm.provider)
             run.raw_response = response
             run.score, _ = extract_score(response, max_score)
             run.rationale = _SCORE_RE.sub("", response).strip()

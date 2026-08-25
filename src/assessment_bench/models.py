@@ -53,9 +53,7 @@ class ArmSpec(BaseModel):
 
     def model_post_init(self, __context: object) -> None:
         if self.kind in (ArmKind.LLM, ArmKind.HYBRID) and self.provider is None:
-            raise ValueError(
-                f"arm '{self.id}': kind={self.kind.value} requires a provider"
-            )
+            raise ValueError(f"arm '{self.id}': kind={self.kind.value} requires a provider")
 
 
 class ExperimentConfig(BaseModel):

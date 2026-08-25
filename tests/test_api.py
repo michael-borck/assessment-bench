@@ -45,9 +45,7 @@ def test_contract_routes(client):
 def test_run_lifecycle(client, monkeypatch):
     def fake_run(config, *, progress=None):
         progress("arm signals: working")
-        return ExperimentResult(
-            name=config.name, max_score=config.max_score, submissions=["a"]
-        )
+        return ExperimentResult(name=config.name, max_score=config.max_score, submissions=["a"])
 
     monkeypatch.setattr(api, "run_experiment", fake_run)
 
@@ -74,12 +72,47 @@ def test_failed_run_reports_error(client, monkeypatch):
     monkeypatch.setattr(api, "run_experiment", boom)
     run_id = client.post("/experiments", json={"config": CONFIG}).json()["id"]
     assert _wait_done(client, run_id) == "failed"
-    assert (
-        "cohort folder missing" in client.get(f"/experiments/{run_id}").json()["error"]
-    )
+    assert "cohort folder missing" in client.get(f"/experiments/{run_id}").json()["error"]
     assert client.get(f"/experiments/{run_id}/result").status_code == 500
 
 
 def test_unknown_id_404s(client):
     assert client.get("/experiments/nope").status_code == 404
     assert client.get("/experiments/nope/result").status_code == 404
+
+
+def test_token_gates_assessment_routes(monkeypatch):
+    # add_auth reads the env at import time — the same import order a desktop
+    # host uses (set env, then spawn) — so build a fresh app.
+    import importlib
+
+    monkeypatch.setenv("ASSESSMENT_BENCH_AUTH_TOKEN", "s3cret")
+    monkeypatch.setattr(api, "_runs", {})
+    importlib.reload(api)
+    try:
+        client = TestClient(api.app)
+
+        # contract routes stay open so a shell can discover the bench
+        assert client.get("/health").status_code == 200
+        assert client.get("/manifest").status_code == 200
+
+        # experiment routes are guarded
+        assert client.get("/experiments").status_code == 401
+        assert client.post("/experiments", json={"config": CONFIG}).status_code == 401
+        assert (
+            client.get("/experiments", headers={"Authorization": "Bearer wrong"}).status_code == 401
+        )
+        assert (
+            client.get("/experiments", headers={"Authorization": "Bearer s3cret"}).status_code
+            == 200
+        )
+    finally:
+        monkeypatch.delenv("ASSESSMENT_BENCH_AUTH_TOKEN")
+        importlib.reload(api)
+
+
+def test_no_token_configured_leaves_localhost_api_open(monkeypatch):
+    monkeypatch.delenv("ASSESSMENT_BENCH_AUTH_TOKEN", raising=False)
+    monkeypatch.setattr(api, "_runs", {})
+    client = TestClient(api.app)
+    assert client.get("/experiments").status_code == 200

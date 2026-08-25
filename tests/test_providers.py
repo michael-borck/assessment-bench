@@ -39,9 +39,7 @@ def fake_openai(monkeypatch):
         def create(self, **kwargs):
             record["create"] = kwargs
             message = types.SimpleNamespace(content="ok. SCORE: 7/10\n")
-            return types.SimpleNamespace(
-                choices=[types.SimpleNamespace(message=message)]
-            )
+            return types.SimpleNamespace(choices=[types.SimpleNamespace(message=message)])
 
     class OpenAI:
         def __init__(self, *, api_key, base_url=None):
@@ -117,9 +115,7 @@ def test_grok_defaults_to_xai_endpoint(clean_env, fake_openai, monkeypatch):
 def test_gemini_defaults_to_openai_compat_shim(clean_env, fake_openai, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "gk")
     providers.complete("p", system="s", spec=_spec(ProviderName.GEMINI))
-    assert fake_openai["base_url"] == (
-        "https://generativelanguage.googleapis.com/v1beta/openai"
-    )
+    assert fake_openai["base_url"] == ("https://generativelanguage.googleapis.com/v1beta/openai")
 
 
 def test_openai_uses_sdk_default_endpoint(clean_env, fake_openai, monkeypatch):

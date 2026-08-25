@@ -68,7 +68,7 @@ three arms in one config.
 
 ## Status
 
-**v0.5.0** (unreleased; v0.4.0 on PyPI). Working today:
+**v0.5.1** (on PyPI). Working today:
 
 - ✅ Experiment config (YAML) → cohort discovery → arms → structured results
 - ✅ LLM arm: multi-provider (anthropic / openai / ollama / openrouter / grok /
@@ -81,12 +81,13 @@ three arms in one config.
   assessment-lens pass per cohort, shared across signals/hybrid arms)
 - ✅ HTTP API (`assessment-bench serve`, the `[serve]` extra) — health/manifest
   contract routes plus background experiment runs for UIs
-- 📋 Desktop shell for non-technical researchers — planned
+- ✅ Desktop shell — [assessment-bench-desktop](https://github.com/michael-borck/assessment-bench-desktop)
+  wraps `serve` as a bundled Python sidecar
 
 ## Development
 
 ```bash
-pytest -v
+ruff format . && ruff check . && pytest -v
 ```
 
 ## License

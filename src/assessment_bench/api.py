@@ -21,7 +21,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from lens_contract import add_contract_routes, add_cors
+from lens_contract import add_auth, add_contract_routes, add_cors
 from pydantic import BaseModel, Field
 
 from .experiment import run_experiment
@@ -30,6 +30,7 @@ from .models import ExperimentConfig, ExperimentResult
 from .report import write_results
 
 app = FastAPI(title=MANIFEST["name"], version=MANIFEST["version"])
+add_auth(app, env_prefix="ASSESSMENT_BENCH")  # before add_cors, so CORS wraps the 401s
 add_contract_routes(app, MANIFEST)
 add_cors(app, env_prefix="ASSESSMENT_BENCH")
 
@@ -74,7 +75,9 @@ class StartExperiment(BaseModel):
     """
 
     config: ExperimentConfig
-    out: Path | None = Field(default=None, description="Folder for result files; omit to skip writing.")
+    out: Path | None = Field(
+        default=None, description="Folder for result files; omit to skip writing."
+    )
 
 
 def _execute(run: _Run, out: Path | None) -> None:

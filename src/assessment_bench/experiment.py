@@ -56,9 +56,7 @@ def discover_submissions(submissions_dir: Path) -> list[Path]:
     if not submissions_dir.is_dir():
         raise AssessmentBenchError(f"submissions folder not found: {submissions_dir}")
     folders = sorted(
-        p
-        for p in submissions_dir.iterdir()
-        if p.is_dir() and not p.name.startswith(".")
+        p for p in submissions_dir.iterdir() if p.is_dir() and not p.name.startswith(".")
     )
     if not folders:
         raise AssessmentBenchError(f"no submission subfolders in {submissions_dir}")
@@ -113,9 +111,7 @@ def _agreements(result: ExperimentResult, marks: dict[str, float]) -> list[Agree
     by_arm: dict[str, dict[str, float]] = {}
     for outcome in result.outcomes:
         if outcome.stats is not None:
-            by_arm.setdefault(outcome.arm_id, {})[outcome.submission_id] = (
-                outcome.stats.mean
-            )
+            by_arm.setdefault(outcome.arm_id, {})[outcome.submission_id] = outcome.stats.mean
     # Numeric signals (signals arm): one measure per dotted signal path.
     by_signal: dict[str, dict[str, float]] = {}
     for outcome in result.outcomes:
@@ -201,9 +197,7 @@ def run_experiment(config: ExperimentConfig, *, progress=None) -> ExperimentResu
         else:
             for folder in submissions:
                 say(f"arm {arm.id}: {folder.name} x{arm.repetitions}")
-                readings = (
-                    readings_for(folder.name) if arm.kind is ArmKind.HYBRID else None
-                )
+                readings = readings_for(folder.name) if arm.kind is ArmKind.HYBRID else None
                 runs = arms.run_llm_arm(
                     arm, folder.name, folder, rubric_text, config.max_score, readings
                 )
